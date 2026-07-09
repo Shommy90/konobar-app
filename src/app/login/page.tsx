@@ -10,6 +10,7 @@ import Paper from "@mui/material/Paper";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { createClient } from "@/lib/supabase/client";
+import { submitOnEnter } from "@/lib/submitOnEnter";
 import type { UserRole } from "@/types/database";
 
 const DASHBOARD_PATH_BY_ROLE: Record<UserRole, string> = {
@@ -68,6 +69,7 @@ export default function LoginPage() {
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
+            onKeyDown={submitOnEnter}
             autoComplete="email"
             required
             fullWidth
@@ -77,6 +79,7 @@ export default function LoginPage() {
             type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
+            onKeyDown={submitOnEnter}
             autoComplete="current-password"
             required
             fullWidth

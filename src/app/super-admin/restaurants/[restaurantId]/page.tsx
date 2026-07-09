@@ -10,8 +10,9 @@ import { getRestaurantDetail } from "@/app/super-admin/data";
 import { BackToDashboardButton } from "@/app/super-admin/BackToDashboardButton";
 import { EditOwnerDialog } from "@/app/super-admin/EditOwnerDialog";
 import { EditRestaurantDialog } from "@/app/super-admin/EditRestaurantDialog";
-import { RestaurantStatusChip } from "@/app/super-admin/RestaurantStatusChip";
+import { RestaurantStatusChip } from "@/components/RestaurantStatusChip";
 import { StatusToggleButton } from "@/app/super-admin/StatusToggleButton";
+import { formatDate } from "@/lib/formatDate";
 
 function toDateInputValue(value: string | null): string {
   return value ? value.slice(0, 10) : "";
@@ -76,7 +77,7 @@ export default async function RestaurantDetailPage({ params }: RestaurantDetailP
                 <strong>Address:</strong> {restaurant.address ?? "—"}
               </Typography>
               <Typography>
-                <strong>Created:</strong> {new Date(restaurant.created_at).toLocaleDateString()}
+                <strong>Created:</strong> {formatDate(restaurant.created_at)}
               </Typography>
             </Stack>
           </Paper>
@@ -100,9 +101,7 @@ export default async function RestaurantDetailPage({ params }: RestaurantDetailP
                 </Typography>
                 <Typography>
                   <strong>Trial end:</strong>{" "}
-                  {subscription.trial_end
-                    ? new Date(subscription.trial_end).toLocaleDateString()
-                    : "—"}
+                  {subscription.trial_end ? formatDate(subscription.trial_end) : "—"}
                 </Typography>
               </Stack>
             ) : (

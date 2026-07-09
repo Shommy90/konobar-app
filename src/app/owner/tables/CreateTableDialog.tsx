@@ -9,17 +9,14 @@ import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
-import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
-import { createOwner } from "@/app/super-admin/actions";
+import { createTable } from "@/app/owner/actions";
 import { submitOnEnter } from "@/lib/submitOnEnter";
 
-type RestaurantOption = { id: string; name: string };
+const EMPTY_FORM = { name: "", number: "" };
 
-const EMPTY_FORM = { email: "", password: "", fullName: "", restaurantId: "" };
-
-export function CreateOwnerDialog({ restaurants }: { restaurants: RestaurantOption[] }) {
+export function CreateTableDialog() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -37,7 +34,7 @@ export function CreateOwnerDialog({ restaurants }: { restaurants: RestaurantOpti
     setLoading(true);
     setError(null);
 
-    const result = await createOwner(form);
+    const result = await createTable(form);
 
     setLoading(false);
 
@@ -52,52 +49,29 @@ export function CreateOwnerDialog({ restaurants }: { restaurants: RestaurantOpti
 
   return (
     <>
-      <Button variant="outlined" onClick={() => setOpen(true)} disabled={restaurants.length === 0}>
-        Create Owner
+      <Button variant="contained" onClick={() => setOpen(true)}>
+        Create Table
       </Button>
-      <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
-        <DialogTitle>Create Owner Account</DialogTitle>
+      <Dialog open={open} onClose={handleClose} fullWidth maxWidth="xs">
+        <DialogTitle>Create Table</DialogTitle>
         <Box component="form" onSubmit={handleSubmit}>
           <DialogContent>
             <Stack spacing={2}>
               <TextField
-                select
-                label="Restaurant"
-                value={form.restaurantId}
-                onChange={(event) => setForm({ ...form, restaurantId: event.target.value })}
-                required
-                fullWidth
-              >
-                {restaurants.map((restaurant) => (
-                  <MenuItem key={restaurant.id} value={restaurant.id}>
-                    {restaurant.name}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <TextField
-                label="Full name"
-                value={form.fullName}
-                onChange={(event) => setForm({ ...form, fullName: event.target.value })}
+                label="Table name"
+                value={form.name}
+                onChange={(event) => setForm({ ...form, name: event.target.value })}
                 onKeyDown={submitOnEnter}
-                fullWidth
-              />
-              <TextField
-                label="Email"
-                type="email"
-                value={form.email}
-                onChange={(event) => setForm({ ...form, email: event.target.value })}
-                onKeyDown={submitOnEnter}
+                helperText="e.g. Table 5, Patio 2, Bar Seat 1"
                 required
                 fullWidth
               />
               <TextField
-                label="Temporary password"
-                type="text"
-                value={form.password}
-                onChange={(event) => setForm({ ...form, password: event.target.value })}
+                label="Table number"
+                type="number"
+                value={form.number}
+                onChange={(event) => setForm({ ...form, number: event.target.value })}
                 onKeyDown={submitOnEnter}
-                helperText="Share this with the owner directly; they can change it after logging in."
-                required
                 fullWidth
               />
               {error && <Alert severity="error">{error}</Alert>}

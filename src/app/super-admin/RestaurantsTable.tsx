@@ -11,9 +11,10 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Typography from "@mui/material/Typography";
-import { RestaurantStatusChip } from "@/app/super-admin/RestaurantStatusChip";
+import { RestaurantStatusChip } from "@/components/RestaurantStatusChip";
 import { StatusToggleButton } from "@/app/super-admin/StatusToggleButton";
 import type { RestaurantWithRelations } from "@/app/super-admin/data";
+import { formatDate } from "@/lib/formatDate";
 
 export function RestaurantsTable({ restaurants }: { restaurants: RestaurantWithRelations[] }) {
   if (restaurants.length === 0) {
@@ -52,7 +53,7 @@ export function RestaurantsTable({ restaurants }: { restaurants: RestaurantWithR
               <TableCell>{restaurant.subscription?.plan ?? "—"}</TableCell>
               <TableCell>{restaurant.subscription?.status ?? "—"}</TableCell>
               <TableCell>{restaurant.owner?.email ?? "—"}</TableCell>
-              <TableCell>{new Date(restaurant.created_at).toLocaleDateString()}</TableCell>
+              <TableCell>{formatDate(restaurant.created_at)}</TableCell>
               <TableCell align="right">
                 <Stack direction="row" spacing={1} sx={{ justifyContent: "flex-end" }}>
                   <Button

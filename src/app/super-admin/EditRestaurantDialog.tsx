@@ -13,6 +13,7 @@ import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import { updateRestaurant } from "@/app/super-admin/actions";
+import { submitOnEnter } from "@/lib/submitOnEnter";
 import type { RestaurantStatus, SubscriptionPlan } from "@/types/database";
 
 const STATUS_OPTIONS: RestaurantStatus[] = ["TRIAL", "ACTIVE", "DISABLED"];
@@ -79,6 +80,7 @@ export function EditRestaurantDialog({ initial }: { initial: EditRestaurantIniti
                 label="Name"
                 value={form.name}
                 onChange={(event) => setForm({ ...form, name: event.target.value })}
+                onKeyDown={submitOnEnter}
                 required
                 fullWidth
               />
@@ -86,6 +88,7 @@ export function EditRestaurantDialog({ initial }: { initial: EditRestaurantIniti
                 label="Slug"
                 value={form.slug}
                 onChange={(event) => setForm({ ...form, slug: event.target.value })}
+                onKeyDown={submitOnEnter}
                 helperText="Used in the guest ordering URL, e.g. my-cafe"
                 required
                 fullWidth
@@ -94,6 +97,7 @@ export function EditRestaurantDialog({ initial }: { initial: EditRestaurantIniti
                 label="Address"
                 value={form.address}
                 onChange={(event) => setForm({ ...form, address: event.target.value })}
+                onKeyDown={submitOnEnter}
                 fullWidth
               />
               <TextField
@@ -132,6 +136,7 @@ export function EditRestaurantDialog({ initial }: { initial: EditRestaurantIniti
                 slotProps={{ htmlInput: { step: "0.01", min: 0 } }}
                 value={form.price}
                 onChange={(event) => setForm({ ...form, price: event.target.value })}
+                onKeyDown={submitOnEnter}
                 fullWidth
               />
               <TextField
@@ -140,6 +145,7 @@ export function EditRestaurantDialog({ initial }: { initial: EditRestaurantIniti
                 slotProps={{ inputLabel: { shrink: true } }}
                 value={form.trialEnd}
                 onChange={(event) => setForm({ ...form, trialEnd: event.target.value })}
+                onKeyDown={submitOnEnter}
                 fullWidth
               />
               {error && <Alert severity="error">{error}</Alert>}

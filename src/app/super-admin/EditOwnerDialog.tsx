@@ -12,6 +12,7 @@ import DialogTitle from "@mui/material/DialogTitle";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import { updateOwner } from "@/app/super-admin/actions";
+import { submitOnEnter } from "@/lib/submitOnEnter";
 
 export type EditOwnerInitialValues = {
   profileId: string;
@@ -70,6 +71,7 @@ export function EditOwnerDialog({ initial }: { initial: EditOwnerInitialValues }
                 label="Full name"
                 value={form.fullName}
                 onChange={(event) => setForm({ ...form, fullName: event.target.value })}
+                onKeyDown={submitOnEnter}
                 fullWidth
               />
               <TextField
@@ -77,6 +79,7 @@ export function EditOwnerDialog({ initial }: { initial: EditOwnerInitialValues }
                 type="email"
                 value={form.email}
                 onChange={(event) => setForm({ ...form, email: event.target.value })}
+                onKeyDown={submitOnEnter}
                 helperText="Changing this updates their login email too."
                 required
                 fullWidth

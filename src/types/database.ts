@@ -32,3 +32,14 @@ export type Subscription = {
   trial_end: string | null;
   created_at: string;
 };
+
+export type RestaurantTable = {
+  id: string;
+  restaurant_id: string;
+  name: string;
+  number: number | null;
+  table_token: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
