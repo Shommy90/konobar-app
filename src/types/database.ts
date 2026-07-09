@@ -2,6 +2,8 @@ export type UserRole = "SUPER_ADMIN" | "OWNER" | "STAFF";
 
 export type RestaurantStatus = "ACTIVE" | "DISABLED" | "TRIAL";
 
+export type SubscriptionPlan = "BASIC" | "BUSINESS" | "ENTERPRISE";
+
 export type Profile = {
   id: string;
   email: string;
