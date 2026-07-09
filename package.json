@@ -6,19 +6,33 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^9.2.0",
+    "@mui/material": "^9.2.0",
+    "@mui/material-nextjs": "^9.1.1",
+    "@supabase/ssr": "^0.12.0",
+    "@supabase/supabase-js": "^2.110.1",
     "next": "16.2.10",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.2",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
+    "eslint-config-prettier": "^10.1.8",
+    "postcss": "^8.5.16",
+    "prettier": "^3.9.4",
+    "tailwindcss": "^4.3.2",
     "typescript": "^5"
   }
 }
