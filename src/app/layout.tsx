@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { NavBar } from "@/components/layout/NavBar";
+import { AuthProvider } from "@/lib/auth/AuthProvider";
 import { ThemeRegistry } from "@/theme/ThemeRegistry";
 import "./globals.css";
 
@@ -28,8 +29,10 @@ export default function RootLayout({
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body>
         <ThemeRegistry>
-          <NavBar />
-          {children}
+          <AuthProvider>
+            <NavBar />
+            {children}
+          </AuthProvider>
         </ThemeRegistry>
       </body>
     </html>
