@@ -1,14 +1,6 @@
-import Box from "@mui/material/Box";
-import Chip from "@mui/material/Chip";
-import Container from "@mui/material/Container";
-import Divider from "@mui/material/Divider";
-import Paper from "@mui/material/Paper";
-import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
-import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import { createClient } from "@/lib/supabase/server";
 import { PagePlaceholder } from "@/components/layout/PagePlaceholder";
-import { getProductImageUrl } from "@/lib/productImage";
+import { GuestOrderingApp } from "@/app/r/[restaurantSlug]/table/[tableToken]/GuestOrderingApp";
 import type { MenuCategory, MenuProduct, Restaurant, RestaurantTable } from "@/types/database";
 
 type GuestTablePageProps = {
@@ -20,57 +12,6 @@ type GuestTablePageProps = {
 
 function ErrorPage({ message }: { message: string }) {
   return <PagePlaceholder title="Table not available" description={message} />;
-}
-
-function ProductRow({ product }: { product: MenuProduct }) {
-  const imageUrl = getProductImageUrl(product.image_path);
-
-  return (
-    <Box sx={{ py: 1.5 }}>
-      <Stack direction="row" spacing={1.5}>
-        <Box
-          sx={{
-            width: 64,
-            height: 64,
-            flexShrink: 0,
-            borderRadius: 1,
-            overflow: "hidden",
-            bgcolor: "action.hover",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          {imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={imageUrl}
-              alt={product.name}
-              style={{ width: "100%", height: "100%", objectFit: "cover" }}
-            />
-          ) : (
-            <ImageOutlinedIcon color="disabled" />
-          )}
-        </Box>
-        <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-          <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "flex-start" }}>
-            <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-              <Typography variant="subtitle1">{product.name}</Typography>
-              {product.is_popular && <Chip size="small" color="warning" label="Popular" />}
-            </Stack>
-            <Typography variant="subtitle1" sx={{ whiteSpace: "nowrap", ml: 2 }}>
-              {product.price.toFixed(2)}
-            </Typography>
-          </Stack>
-          {product.description && (
-            <Typography variant="body2" color="text.secondary">
-              {product.description}
-            </Typography>
-          )}
-        </Box>
-      </Stack>
-    </Box>
-  );
 }
 
 export default async function GuestTablePage({ params }: GuestTablePageProps) {
@@ -129,65 +70,13 @@ export default async function GuestTablePage({ params }: GuestTablePageProps) {
 
   const categoryList: MenuCategory[] = categories ?? [];
   const productList: MenuProduct[] = products ?? [];
-  const uncategorized = productList.filter((product) => !product.category_id);
-
-  const hasAnyItems =
-    productList.length > 0 &&
-    (categoryList.some((category) =>
-      productList.some((product) => product.category_id === category.id),
-    ) ||
-      uncategorized.length > 0);
 
   return (
-    <Container maxWidth="sm" sx={{ py: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
-        {restaurant.name}
-      </Typography>
-      <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 3 }}>
-        {table.name}
-      </Typography>
-
-      {!hasAnyItems ? (
-        <Typography color="text.secondary">Menu coming soon.</Typography>
-      ) : (
-        <Stack spacing={3}>
-          {categoryList.map((category) => {
-            const categoryProducts = productList.filter(
-              (product) => product.category_id === category.id,
-            );
-            if (categoryProducts.length === 0) return null;
-
-            return (
-              <Paper key={category.id} variant="outlined" sx={{ p: 2 }}>
-                <Typography variant="h6">{category.name}</Typography>
-                {category.description && (
-                  <Typography variant="body2" color="text.secondary">
-                    {category.description}
-                  </Typography>
-                )}
-                <Divider sx={{ mt: 1.5 }} />
-                <Stack divider={<Divider />}>
-                  {categoryProducts.map((product) => (
-                    <ProductRow key={product.id} product={product} />
-                  ))}
-                </Stack>
-              </Paper>
-            );
-          })}
-
-          {uncategorized.length > 0 && (
-            <Paper variant="outlined" sx={{ p: 2 }}>
-              <Typography variant="h6">Other Items</Typography>
-              <Divider sx={{ mt: 1.5 }} />
-              <Stack divider={<Divider />}>
-                {uncategorized.map((product) => (
-                  <ProductRow key={product.id} product={product} />
-                ))}
-              </Stack>
-            </Paper>
-          )}
-        </Stack>
-      )}
-    </Container>
+    <GuestOrderingApp
+      restaurant={restaurant}
+      table={table}
+      categories={categoryList}
+      products={productList}
+    />
   );
 }

@@ -69,3 +69,52 @@ export type MenuProduct = {
   created_at: string;
   updated_at: string;
 };
+
+export type TableSessionStatus = "ACTIVE" | "REQUESTED_BILL" | "CLOSED";
+
+export type TableSession = {
+  id: string;
+  restaurant_id: string;
+  table_id: string;
+  status: TableSessionStatus;
+  session_token: string;
+  opened_at: string;
+  closed_at: string | null;
+  last_activity_at: string;
+};
+
+export type OrderStatus = "NEW" | "ACCEPTED" | "READY" | "DELIVERED" | "CANCELLED";
+
+export type Order = {
+  id: string;
+  restaurant_id: string;
+  table_id: string;
+  table_session_id: string;
+  status: OrderStatus;
+  total_price: number;
+  note: string | null;
+  created_at: string;
+};
+
+export type OrderItem = {
+  id: string;
+  order_id: string;
+  product_id: string | null;
+  product_name: string;
+  product_price: number;
+  quantity: number;
+  note: string | null;
+};
+
+export type ServiceRequestType = "CALL_WAITER" | "REQUEST_BILL";
+export type ServiceRequestStatus = "NEW" | "DONE";
+
+export type ServiceRequest = {
+  id: string;
+  restaurant_id: string;
+  table_id: string;
+  table_session_id: string;
+  type: ServiceRequestType;
+  status: ServiceRequestStatus;
+  created_at: string;
+};

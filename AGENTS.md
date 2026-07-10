@@ -7,7 +7,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 # Konobar
 
-Multi-tenant SaaS for QR table ordering: guests scan a table's QR code, browse the menu, and order; staff see orders in real time. Currently in early sprints — auth, roles, admin/owner tooling, and the guest-facing menu display are in place; cart/ordering is not built yet.
+Multi-tenant SaaS for QR table ordering: guests scan a table's QR code, browse the menu, and order; staff see orders in real time. Currently in early sprints — auth, roles, admin/owner tooling, the guest-facing menu, and guest cart/ordering are in place; the staff dashboard (accepting/serving orders, realtime) is not built yet.
 
 ## Tech stack
 
@@ -23,6 +23,8 @@ Multi-tenant SaaS for QR table ordering: guests scan a table's QR code, browse t
 - Route protection: each protected page is a Server Component calling `getCurrentProfile()` and redirecting to `/login` if the role doesn't match.
 - SQL migrations live in `supabase/migrations/`, run manually via the Supabase SQL Editor (no CLI linkage yet).
 - Guest-facing routes (`/r/[restaurantSlug]/table/[tableToken]`) are unauthenticated; narrow `to anon` RLS policies expose just enough for that page to work.
+- Guests have no login. Identity is a random `table_sessions.session_token` cached in `localStorage` (`src/lib/guestSessionStorage.ts`) - it works as a capability, not a real credential. Anon RLS on `table_sessions`/`orders`/`order_items`/`service_requests` is intentionally broad (`using (true)` for reads) because RLS has no per-guest identity to check against; see the comment block in `0009_ordering_rls.sql` for the full trade-off and a note on tightening it later via SECURITY DEFINER RPCs if needed.
+- Guest order pricing is always re-derived server-side from current `menu_products` rows in the `placeOrder` action - client-submitted prices are never trusted, only `productId` + `quantity`.
 
 ## Progress log
 
@@ -37,5 +39,7 @@ Multi-tenant SaaS for QR table ordering: guests scan a table's QR code, browse t
 **Sprint 5 — Menu management & guest menu display**: `menu_categories`/`menu_products` tables with RLS (including `to anon` public-read policies scoped to active categories/available products), `/owner/menu` for creating/editing categories and products (activate/deactivate, mark available/popular, manual sort order, delete), guest page now renders the actual menu grouped by category instead of the "coming soon" placeholder. No cart/ordering yet.
 
 **Sprint 5.1 — Product images via Supabase Storage**: replaced the manual `image_url` text field with real uploads to a `product-images` Storage bucket (`restaurants/{restaurantId}/products/{productId}/{uuid}.webp`), stored as `menu_products.image_path`. Storage RLS mirrors the DB pattern (SUPER_ADMIN full access, OWNER scoped to their own restaurant folder via `storage.foldername()`, public read). Client-side resize/compress to WebP (max 1200x1200, 5MB source limit) before upload — no binary/base64 ever touches Postgres. Upload → DB update → delete-old-object ordering, so a failed step never orphans data either direction.
+
+**Sprint 6 — Guest cart, table sessions & ordering**: `table_sessions`/`orders`/`order_items`/`service_requests` tables with RLS. Guest page auto-opens (or resumes) an anonymous `ACTIVE` table session on load — race-safe via a partial unique index (one `ACTIVE` session per table) plus a 6-hour staleness timeout (`SESSION_TIMEOUT_HOURS` in `src/lib/tableSession.ts`) that auto-closes and replaces stale sessions. Guests get a mobile-first cart (localStorage-persisted, sticky "View Cart" bar), place orders (server re-derives prices from `menu_products`, never trusts the client), see order status and an aggregated current-bill view, and can call a waiter or request the bill (which locks further ordering by flipping the session to `REQUESTED_BILL`, without auto-closing it). No staff dashboard, order acceptance, realtime, or payments yet — that's Sprint 7.
 
 _Update this log after every sprint or major feature — keep entries short (tech + what shipped), not a full changelog._
