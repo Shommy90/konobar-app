@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -15,7 +15,15 @@ import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import { updateProduct } from "@/app/owner/menu/actions";
+import {
+  deleteProductImage,
+  resizeImageToWebp,
+  uploadProductImage,
+  validateImageFile,
+} from "@/lib/imageUpload";
+import { buildProductImagePath, getProductImageUrl } from "@/lib/productImage";
 import { submitOnEnter } from "@/lib/submitOnEnter";
+import { ProductImagePicker } from "@/app/owner/menu/ProductImagePicker";
 
 type CategoryOption = { id: string; name: string };
 
@@ -25,26 +33,45 @@ export type EditProductInitialValues = {
   name: string;
   description: string;
   price: string;
-  imageUrl: string;
+  imagePath: string | null;
   isPopular: boolean;
   sortOrder: string;
 };
 
 export function EditProductDialog({
+  restaurantId,
   initial,
   categories,
 }: {
+  restaurantId: string;
   initial: EditProductInitialValues;
   categories: CategoryOption[];
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(initial);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [removeRequested, setRemoveRequested] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const localPreviewUrl = useMemo(
+    () => (selectedFile ? URL.createObjectURL(selectedFile) : null),
+    [selectedFile],
+  );
+
+  useEffect(() => {
+    return () => {
+      if (localPreviewUrl) URL.revokeObjectURL(localPreviewUrl);
+    };
+  }, [localPreviewUrl]);
+
   function handleOpen() {
     setForm(initial);
+    setSelectedFile(null);
+    setRemoveRequested(false);
+    setImageError(null);
     setError(null);
     setOpen(true);
   }
@@ -54,23 +81,79 @@ export function EditProductDialog({
     setError(null);
   }
 
+  function handleFileChange(file: File) {
+    const validationError = validateImageFile(file);
+    if (validationError) {
+      setImageError(validationError);
+      return;
+    }
+    setImageError(null);
+    setRemoveRequested(false);
+    setSelectedFile(file);
+  }
+
+  function handleRemoveImage() {
+    setSelectedFile(null);
+    setRemoveRequested(true);
+  }
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setLoading(true);
     setError(null);
 
-    const result = await updateProduct(form);
+    let imagePath = initial.imagePath;
+
+    if (selectedFile) {
+      const webpBlob = await resizeImageToWebp(selectedFile);
+      const newPath = buildProductImagePath(restaurantId, initial.productId);
+      const uploadError = await uploadProductImage(newPath, webpBlob);
+      if (uploadError) {
+        setLoading(false);
+        setError(uploadError);
+        return;
+      }
+      imagePath = newPath;
+    } else if (removeRequested) {
+      imagePath = null;
+    }
+
+    const { categoryId, name, description, price, isPopular, sortOrder } = form;
+    const result = await updateProduct({
+      productId: initial.productId,
+      categoryId,
+      name,
+      description,
+      price,
+      isPopular,
+      sortOrder,
+      imagePath,
+    });
 
     setLoading(false);
 
     if (!result.success) {
+      // Roll back the new upload - the DB update never happened, so it
+      // would otherwise be an orphaned object nothing points to.
+      if (imagePath && imagePath !== initial.imagePath) {
+        await deleteProductImage(imagePath);
+      }
       setError(result.error);
       return;
+    }
+
+    // Only remove the old object once the DB row is confirmed pointing at
+    // the new one (or at nothing, if removed) - never delete-then-update.
+    if (initial.imagePath && imagePath !== initial.imagePath) {
+      await deleteProductImage(initial.imagePath);
     }
 
     router.refresh();
     handleClose();
   }
+
+  const previewUrl =
+    localPreviewUrl ?? (removeRequested ? null : getProductImageUrl(initial.imagePath));
 
   return (
     <>
@@ -122,13 +205,11 @@ export function EditProductDialog({
                 required
                 fullWidth
               />
-              <TextField
-                label="Image URL"
-                value={form.imageUrl}
-                onChange={(event) => setForm({ ...form, imageUrl: event.target.value })}
-                onKeyDown={submitOnEnter}
-                helperText="Optional - paste a link to an image hosted elsewhere"
-                fullWidth
+              <ProductImagePicker
+                previewUrl={previewUrl}
+                onFileChange={handleFileChange}
+                onRemove={handleRemoveImage}
+                error={imageError}
               />
               <TextField
                 label="Sort order"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -15,7 +15,15 @@ import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import { createProduct } from "@/app/owner/menu/actions";
+import {
+  deleteProductImage,
+  resizeImageToWebp,
+  uploadProductImage,
+  validateImageFile,
+} from "@/lib/imageUpload";
+import { buildProductImagePath } from "@/lib/productImage";
 import { submitOnEnter } from "@/lib/submitOnEnter";
+import { ProductImagePicker } from "@/app/owner/menu/ProductImagePicker";
 
 type CategoryOption = { id: string; name: string };
 
@@ -24,21 +32,51 @@ const EMPTY_FORM = {
   name: "",
   description: "",
   price: "",
-  imageUrl: "",
   isPopular: false,
   sortOrder: "",
 };
 
-export function CreateProductDialog({ categories }: { categories: CategoryOption[] }) {
+export function CreateProductDialog({
+  restaurantId,
+  categories,
+}: {
+  restaurantId: string;
+  categories: CategoryOption[];
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const previewUrl = useMemo(
+    () => (selectedFile ? URL.createObjectURL(selectedFile) : null),
+    [selectedFile],
+  );
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
+  function handleFileChange(file: File) {
+    const validationError = validateImageFile(file);
+    if (validationError) {
+      setImageError(validationError);
+      return;
+    }
+    setImageError(null);
+    setSelectedFile(file);
+  }
 
   function handleClose() {
     setOpen(false);
     setForm(EMPTY_FORM);
+    setSelectedFile(null);
+    setImageError(null);
     setError(null);
   }
 
@@ -47,11 +85,29 @@ export function CreateProductDialog({ categories }: { categories: CategoryOption
     setLoading(true);
     setError(null);
 
-    const result = await createProduct(form);
+    const productId = crypto.randomUUID();
+    let imagePath: string | null = null;
+
+    if (selectedFile) {
+      const webpBlob = await resizeImageToWebp(selectedFile);
+      const path = buildProductImagePath(restaurantId, productId);
+      const uploadError = await uploadProductImage(path, webpBlob);
+      if (uploadError) {
+        setLoading(false);
+        setError(uploadError);
+        return;
+      }
+      imagePath = path;
+    }
+
+    const result = await createProduct({ id: productId, ...form, imagePath });
 
     setLoading(false);
 
     if (!result.success) {
+      if (imagePath) {
+        await deleteProductImage(imagePath);
+      }
       setError(result.error);
       return;
     }
@@ -110,13 +166,10 @@ export function CreateProductDialog({ categories }: { categories: CategoryOption
                 required
                 fullWidth
               />
-              <TextField
-                label="Image URL"
-                value={form.imageUrl}
-                onChange={(event) => setForm({ ...form, imageUrl: event.target.value })}
-                onKeyDown={submitOnEnter}
-                helperText="Optional - paste a link to an image hosted elsewhere"
-                fullWidth
+              <ProductImagePicker
+                previewUrl={previewUrl}
+                onFileChange={handleFileChange}
+                error={imageError}
               />
               <TextField
                 label="Sort order"

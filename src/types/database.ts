@@ -62,7 +62,7 @@ export type MenuProduct = {
   name: string;
   description: string | null;
   price: number;
-  image_url: string | null;
+  image_path: string | null;
   is_available: boolean;
   is_popular: boolean;
   sort_order: number;

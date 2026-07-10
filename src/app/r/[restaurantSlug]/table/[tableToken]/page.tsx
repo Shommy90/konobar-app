@@ -5,8 +5,10 @@ import Divider from "@mui/material/Divider";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import { createClient } from "@/lib/supabase/server";
 import { PagePlaceholder } from "@/components/layout/PagePlaceholder";
+import { getProductImageUrl } from "@/lib/productImage";
 import type { MenuCategory, MenuProduct, Restaurant, RestaurantTable } from "@/types/database";
 
 type GuestTablePageProps = {
@@ -21,22 +23,52 @@ function ErrorPage({ message }: { message: string }) {
 }
 
 function ProductRow({ product }: { product: MenuProduct }) {
+  const imageUrl = getProductImageUrl(product.image_path);
+
   return (
     <Box sx={{ py: 1.5 }}>
-      <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "flex-start" }}>
-        <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-          <Typography variant="subtitle1">{product.name}</Typography>
-          {product.is_popular && <Chip size="small" color="warning" label="Popular" />}
-        </Stack>
-        <Typography variant="subtitle1" sx={{ whiteSpace: "nowrap", ml: 2 }}>
-          {product.price.toFixed(2)}
-        </Typography>
+      <Stack direction="row" spacing={1.5}>
+        <Box
+          sx={{
+            width: 64,
+            height: 64,
+            flexShrink: 0,
+            borderRadius: 1,
+            overflow: "hidden",
+            bgcolor: "action.hover",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={imageUrl}
+              alt={product.name}
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
+          ) : (
+            <ImageOutlinedIcon color="disabled" />
+          )}
+        </Box>
+        <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+          <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "flex-start" }}>
+            <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+              <Typography variant="subtitle1">{product.name}</Typography>
+              {product.is_popular && <Chip size="small" color="warning" label="Popular" />}
+            </Stack>
+            <Typography variant="subtitle1" sx={{ whiteSpace: "nowrap", ml: 2 }}>
+              {product.price.toFixed(2)}
+            </Typography>
+          </Stack>
+          {product.description && (
+            <Typography variant="body2" color="text.secondary">
+              {product.description}
+            </Typography>
+          )}
+        </Box>
       </Stack>
-      {product.description && (
-        <Typography variant="body2" color="text.secondary">
-          {product.description}
-        </Typography>
-      )}
     </Box>
   );
 }

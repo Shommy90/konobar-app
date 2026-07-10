@@ -11,20 +11,25 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Typography from "@mui/material/Typography";
+import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import { getCurrentProfile } from "@/lib/auth/getCurrentProfile";
 import { getOwnerCategories, getOwnerProducts } from "@/app/owner/data";
 import { CategoryActiveToggleButton } from "@/app/owner/menu/CategoryActiveToggleButton";
 import { CreateCategoryDialog } from "@/app/owner/menu/CreateCategoryDialog";
 import { CreateProductDialog } from "@/app/owner/menu/CreateProductDialog";
+import { DeleteProductButton } from "@/app/owner/menu/DeleteProductButton";
 import { EditCategoryDialog } from "@/app/owner/menu/EditCategoryDialog";
 import { EditProductDialog } from "@/app/owner/menu/EditProductDialog";
 import { ProductAvailableToggleButton } from "@/app/owner/menu/ProductAvailableToggleButton";
+import { getProductImageUrl } from "@/lib/productImage";
 import type { MenuProduct } from "@/types/database";
 
 function ProductsTable({
+  restaurantId,
   products,
   categoryOptions,
 }: {
+  restaurantId: string;
   products: MenuProduct[];
   categoryOptions: { id: string; name: string }[];
 }) {
@@ -41,6 +46,7 @@ function ProductsTable({
       <Table size="small">
         <TableHead>
           <TableRow>
+            <TableCell />
             <TableCell>Name</TableCell>
             <TableCell>Price</TableCell>
             <TableCell>Available</TableCell>
@@ -49,50 +55,80 @@ function ProductsTable({
           </TableRow>
         </TableHead>
         <TableBody>
-          {products.map((product) => (
-            <TableRow key={product.id}>
-              <TableCell>
-                <Typography variant="body2">{product.name}</Typography>
-                {product.description && (
-                  <Typography variant="caption" color="text.secondary">
-                    {product.description}
-                  </Typography>
-                )}
-              </TableCell>
-              <TableCell>{product.price.toFixed(2)}</TableCell>
-              <TableCell>
-                <Chip
-                  size="small"
-                  label={product.is_available ? "Available" : "Unavailable"}
-                  color={product.is_available ? "success" : "default"}
-                />
-              </TableCell>
-              <TableCell>
-                {product.is_popular ? <Chip size="small" label="Popular" /> : "—"}
-              </TableCell>
-              <TableCell align="right">
-                <Stack direction="row" spacing={1} sx={{ justifyContent: "flex-end" }}>
-                  <EditProductDialog
-                    categories={categoryOptions}
-                    initial={{
-                      productId: product.id,
-                      categoryId: product.category_id ?? "",
-                      name: product.name,
-                      description: product.description ?? "",
-                      price: String(product.price),
-                      imageUrl: product.image_url ?? "",
-                      isPopular: product.is_popular,
-                      sortOrder: String(product.sort_order),
+          {products.map((product) => {
+            const imageUrl = getProductImageUrl(product.image_path);
+            return (
+              <TableRow key={product.id}>
+                <TableCell sx={{ width: 56 }}>
+                  <Box
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 1,
+                      overflow: "hidden",
+                      bgcolor: "action.hover",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
                     }}
+                  >
+                    {imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={imageUrl}
+                        alt={product.name}
+                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      />
+                    ) : (
+                      <ImageOutlinedIcon color="disabled" fontSize="small" />
+                    )}
+                  </Box>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="body2">{product.name}</Typography>
+                  {product.description && (
+                    <Typography variant="caption" color="text.secondary">
+                      {product.description}
+                    </Typography>
+                  )}
+                </TableCell>
+                <TableCell>{product.price.toFixed(2)}</TableCell>
+                <TableCell>
+                  <Chip
+                    size="small"
+                    label={product.is_available ? "Available" : "Unavailable"}
+                    color={product.is_available ? "success" : "default"}
                   />
-                  <ProductAvailableToggleButton
-                    productId={product.id}
-                    isAvailable={product.is_available}
-                  />
-                </Stack>
-              </TableCell>
-            </TableRow>
-          ))}
+                </TableCell>
+                <TableCell>
+                  {product.is_popular ? <Chip size="small" label="Popular" /> : "—"}
+                </TableCell>
+                <TableCell align="right">
+                  <Stack direction="row" spacing={1} sx={{ justifyContent: "flex-end" }}>
+                    <EditProductDialog
+                      restaurantId={restaurantId}
+                      categories={categoryOptions}
+                      initial={{
+                        productId: product.id,
+                        categoryId: product.category_id ?? "",
+                        name: product.name,
+                        description: product.description ?? "",
+                        price: String(product.price),
+                        imagePath: product.image_path,
+                        isPopular: product.is_popular,
+                        sortOrder: String(product.sort_order),
+                      }}
+                    />
+                    <ProductAvailableToggleButton
+                      productId={product.id}
+                      isAvailable={product.is_available}
+                    />
+                    <DeleteProductButton productId={product.id} productName={product.name} />
+                  </Stack>
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </TableContainer>
@@ -126,7 +162,7 @@ export default async function OwnerMenuPage() {
           Menu
         </Typography>
         <Stack direction="row" spacing={1}>
-          <CreateProductDialog categories={categoryOptions} />
+          <CreateProductDialog restaurantId={restaurantId} categories={categoryOptions} />
           <CreateCategoryDialog />
         </Stack>
       </Stack>
@@ -174,6 +210,7 @@ export default async function OwnerMenuPage() {
                 )}
               </Box>
               <ProductsTable
+                restaurantId={restaurantId}
                 products={products.filter((product) => product.category_id === category.id)}
                 categoryOptions={categoryOptions}
               />
@@ -185,7 +222,11 @@ export default async function OwnerMenuPage() {
               <Box sx={{ p: 2 }}>
                 <Typography variant="h6">Uncategorized</Typography>
               </Box>
-              <ProductsTable products={uncategorized} categoryOptions={categoryOptions} />
+              <ProductsTable
+                restaurantId={restaurantId}
+                products={uncategorized}
+                categoryOptions={categoryOptions}
+              />
             </Paper>
           )}
         </Stack>
