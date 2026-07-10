@@ -2,18 +2,10 @@
 
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
-import { getCurrentProfile, type CurrentUser } from "@/lib/auth/getCurrentProfile";
+import { requireOwner } from "@/lib/auth/requireOwner";
 import { createClient } from "@/lib/supabase/server";
 
 type ActionResult = { success: true } | { success: false; error: string };
-
-async function requireOwner(): Promise<CurrentUser & { profile: { restaurant_id: string } }> {
-  const current = await getCurrentProfile();
-  if (!current || current.profile.role !== "OWNER" || !current.profile.restaurant_id) {
-    throw new Error("Unauthorized");
-  }
-  return current as CurrentUser & { profile: { restaurant_id: string } };
-}
 
 function generateTableToken(): string {
   return randomUUID().replace(/-/g, "");

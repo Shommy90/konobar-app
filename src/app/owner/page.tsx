@@ -90,6 +90,9 @@ export default async function OwnerPage() {
         <LinkButton variant="contained" href="/owner/tables">
           Manage Tables
         </LinkButton>
+        <LinkButton variant="contained" href="/owner/menu">
+          Manage Menu
+        </LinkButton>
       </Stack>
     </Container>
   );

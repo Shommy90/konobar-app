@@ -7,7 +7,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 # Konobar
 
-Multi-tenant SaaS for QR table ordering: guests scan a table's QR code, browse the menu, and order; staff see orders in real time. Currently in early sprints — auth, roles, and admin/owner tooling are in place; menu/ordering is not built yet.
+Multi-tenant SaaS for QR table ordering: guests scan a table's QR code, browse the menu, and order; staff see orders in real time. Currently in early sprints — auth, roles, admin/owner tooling, and the guest-facing menu display are in place; cart/ordering is not built yet.
 
 ## Tech stack
 
@@ -33,5 +33,7 @@ Multi-tenant SaaS for QR table ordering: guests scan a table's QR code, browse t
 **Sprint 3 — Super Admin panel**: dashboard stat cards, restaurants table with activate/disable, create/edit restaurant (+ subscription row), owner account creation via the Supabase Auth admin API (service-role key, server-only), restaurant details page.
 
 **Sprint 4 — Owner dashboard, tables & QR**: `restaurant_tables` table with RLS, `/owner` dashboard, `/owner/tables` management (create/edit/activate/delete tables), server-generated QR codes with copy/download/print, guest landing page validates restaurant/table and shows "Menu coming soon".
+
+**Sprint 5 — Menu management & guest menu display**: `menu_categories`/`menu_products` tables with RLS (including `to anon` public-read policies scoped to active categories/available products), `/owner/menu` for creating/editing categories and products (activate/deactivate, mark available/popular, manual sort order), guest page now renders the actual menu grouped by category instead of the "coming soon" placeholder. No cart/ordering yet.
 
 _Update this log after every sprint or major feature — keep entries short (tech + what shipped), not a full changelog._
