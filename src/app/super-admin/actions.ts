@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getCurrentProfile } from "@/lib/auth/getCurrentProfile";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createStaffAccount } from "@/lib/staffAccount";
 import type { RestaurantStatus } from "@/types/database";
 
 type ActionResult = { success: true } | { success: false; error: string };
@@ -175,40 +176,28 @@ export type CreateOwnerInput = {
 export async function createOwner(input: CreateOwnerInput): Promise<ActionResult> {
   await requireSuperAdmin();
 
-  const email = input.email.trim();
-
-  if (!email || !input.password || !input.restaurantId) {
-    return { success: false, error: "Email, password, and restaurant are required." };
+  const result = await createStaffAccount({ ...input, role: "OWNER" });
+  if (!result.success) {
+    return result;
   }
 
-  const adminClient = createAdminClient();
+  revalidatePath("/super-admin");
+  return { success: true };
+}
 
-  const { data: created, error: createError } = await adminClient.auth.admin.createUser({
-    email,
-    password: input.password,
-    email_confirm: true,
-    user_metadata: { full_name: input.fullName },
-  });
+export type CreateStaffMemberInput = {
+  nickname: string;
+  password: string;
+  fullName: string;
+  restaurantId: string;
+};
 
-  if (createError || !created.user) {
-    return { success: false, error: createError?.message ?? "Failed to create user." };
-  }
+export async function createStaffMember(input: CreateStaffMemberInput): Promise<ActionResult> {
+  await requireSuperAdmin();
 
-  // Insert via the caller's own (RLS-scoped) client, not the admin client -
-  // this keeps the write subject to the same profiles_insert policy as any
-  // other SUPER_ADMIN action, rather than silently bypassing RLS.
-  const supabase = await createClient();
-  const { error: profileError } = await supabase.from("profiles").insert({
-    id: created.user.id,
-    email,
-    full_name: input.fullName.trim() || null,
-    role: "OWNER",
-    restaurant_id: input.restaurantId,
-  });
-
-  if (profileError) {
-    await adminClient.auth.admin.deleteUser(created.user.id);
-    return { success: false, error: profileError.message };
+  const result = await createStaffAccount({ ...input, role: "STAFF" });
+  if (!result.success) {
+    return result;
   }
 
   revalidatePath("/super-admin");

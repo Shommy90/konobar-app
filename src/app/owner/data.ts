@@ -1,5 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
-import type { MenuCategory, MenuProduct, Restaurant, RestaurantTable } from "@/types/database";
+import type {
+  MenuCategory,
+  MenuProduct,
+  Profile,
+  Restaurant,
+  RestaurantTable,
+} from "@/types/database";
 
 export async function getOwnerRestaurant(restaurantId: string): Promise<Restaurant | null> {
   const supabase = await createClient();
@@ -41,6 +47,18 @@ export async function getOwnerProducts(restaurantId: string): Promise<MenuProduc
     .select("*")
     .eq("restaurant_id", restaurantId)
     .order("sort_order", { ascending: true });
+
+  return data ?? [];
+}
+
+export async function getOwnerStaff(restaurantId: string): Promise<Profile[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("restaurant_id", restaurantId)
+    .eq("role", "STAFF")
+    .order("created_at", { ascending: true });
 
   return data ?? [];
 }

@@ -7,6 +7,7 @@ export type SubscriptionPlan = "BASIC" | "BUSINESS" | "ENTERPRISE";
 export type Profile = {
   id: string;
   email: string;
+  nickname: string | null;
   full_name: string | null;
   role: UserRole;
   restaurant_id: string | null;
