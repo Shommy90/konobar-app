@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getCurrentProfile } from "@/lib/auth/getCurrentProfile";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createStaffAccount } from "@/lib/staffAccount";
+import { createOwnerAccount } from "@/lib/staffAccount";
 import type { RestaurantStatus } from "@/types/database";
 
 type ActionResult = { success: true } | { success: false; error: string };
@@ -176,26 +176,7 @@ export type CreateOwnerInput = {
 export async function createOwner(input: CreateOwnerInput): Promise<ActionResult> {
   await requireSuperAdmin();
 
-  const result = await createStaffAccount({ ...input, role: "OWNER" });
-  if (!result.success) {
-    return result;
-  }
-
-  revalidatePath("/super-admin");
-  return { success: true };
-}
-
-export type CreateStaffMemberInput = {
-  nickname: string;
-  password: string;
-  fullName: string;
-  restaurantId: string;
-};
-
-export async function createStaffMember(input: CreateStaffMemberInput): Promise<ActionResult> {
-  await requireSuperAdmin();
-
-  const result = await createStaffAccount({ ...input, role: "STAFF" });
+  const result = await createOwnerAccount(input);
   if (!result.success) {
     return result;
   }

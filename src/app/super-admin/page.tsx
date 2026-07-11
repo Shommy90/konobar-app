@@ -5,7 +5,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { getCurrentProfile } from "@/lib/auth/getCurrentProfile";
 import { CreateRestaurantDialog } from "@/app/super-admin/CreateRestaurantDialog";
-import { CreateStaffAccountDialog } from "@/app/super-admin/CreateStaffAccountDialog";
+import { CreateOwnerDialog } from "@/app/super-admin/CreateOwnerDialog";
 import { RestaurantsTable } from "@/app/super-admin/RestaurantsTable";
 import { StatCard } from "@/app/super-admin/StatCard";
 import { getDashboardData } from "@/app/super-admin/data";
@@ -48,14 +48,7 @@ export default async function SuperAdminPage() {
           Restaurants
         </Typography>
         <Stack direction="row" spacing={1}>
-          <CreateStaffAccountDialog
-            role="OWNER"
-            restaurants={restaurants.map((r) => ({ id: r.id, name: r.name }))}
-          />
-          <CreateStaffAccountDialog
-            role="STAFF"
-            restaurants={restaurants.map((r) => ({ id: r.id, name: r.name }))}
-          />
+          <CreateOwnerDialog restaurants={restaurants.map((r) => ({ id: r.id, name: r.name }))} />
           <CreateRestaurantDialog />
         </Stack>
       </Stack>

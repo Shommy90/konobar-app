@@ -10,7 +10,6 @@ import Paper from "@mui/material/Paper";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { createClient } from "@/lib/supabase/client";
-import { nicknameToStaffEmail } from "@/lib/staffLogin";
 import { submitOnEnter } from "@/lib/submitOnEnter";
 import type { UserRole } from "@/types/database";
 
@@ -22,7 +21,7 @@ const DASHBOARD_PATH_BY_ROLE: Record<UserRole, string> = {
 
 export default function LoginPage() {
   const router = useRouter();
-  const [identifier, setIdentifier] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -32,12 +31,9 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
-    const trimmed = identifier.trim();
-    const email = trimmed.includes("@") ? trimmed : nicknameToStaffEmail(trimmed);
-
     const supabase = createClient();
     const { data, error: signInError } = await supabase.auth.signInWithPassword({
-      email,
+      email: email.trim(),
       password,
     });
 
@@ -69,9 +65,10 @@ export default function LoginPage() {
           sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 2 }}
         >
           <TextField
-            label="Email or Nickname"
-            value={identifier}
-            onChange={(event) => setIdentifier(event.target.value)}
+            label="Email"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
             onKeyDown={submitOnEnter}
             autoComplete="username"
             required
