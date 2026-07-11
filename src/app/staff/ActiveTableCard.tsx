@@ -7,7 +7,7 @@ import CardContent from "@mui/material/CardContent";
 import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { formatElapsedMinutes } from "@/lib/elapsed";
+import { formatElapsedMinutes, formatRemainingMinutes } from "@/lib/elapsed";
 import type { StaffActiveSession } from "@/app/staff/data";
 
 type ActiveTableCardProps = {
@@ -46,6 +46,9 @@ export function ActiveTableCard({
         </Stack>
         <Typography variant="body2" color="text.secondary">
           Active {formatElapsedMinutes(session.opened_at, now)}
+          {now !== null &&
+            session.expires_at &&
+            ` · Expires in ${formatRemainingMinutes(session.expires_at, now)}`}
         </Typography>
         <Typography variant="body1" sx={{ mt: 0.5 }}>
           Total: {session.total.toFixed(2)}

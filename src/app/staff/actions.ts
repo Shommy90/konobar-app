@@ -107,7 +107,11 @@ export async function closeTableSession(sessionId: string): Promise<ActionResult
 
   const { error: sessionError } = await supabase
     .from("table_sessions")
-    .update({ status: "CLOSED", closed_at: new Date().toISOString() })
+    .update({
+      status: "CLOSED",
+      close_reason: "CLOSED_BY_STAFF",
+      closed_at: new Date().toISOString(),
+    })
     .eq("id", sessionId)
     .eq("restaurant_id", current.profile.restaurant_id);
 

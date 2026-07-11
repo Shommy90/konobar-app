@@ -71,12 +71,18 @@ export default async function GuestTablePage({ params }: GuestTablePageProps) {
   const categoryList: MenuCategory[] = categories ?? [];
   const productList: MenuProduct[] = products ?? [];
 
+  // Minted fresh on every real page load, consumed once by
+  // resolve_guest_session() - see src/lib/guestDeviceToken.ts for the
+  // limitations of what this can and can't prove.
+  const { data: scanNonce } = await supabase.rpc("issue_scan_nonce", { p_table_id: table.id });
+
   return (
     <GuestOrderingApp
       restaurant={restaurant}
       table={table}
       categories={categoryList}
       products={productList}
+      scanNonce={scanNonce ?? null}
     />
   );
 }

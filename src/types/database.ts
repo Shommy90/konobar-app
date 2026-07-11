@@ -70,7 +70,13 @@ export type MenuProduct = {
   updated_at: string;
 };
 
-export type TableSessionStatus = "ACTIVE" | "REQUESTED_BILL" | "CLOSED";
+export type TableSessionStatus = "ACTIVE" | "REQUESTED_BILL" | "CLOSED" | "EXPIRED";
+
+export type TableSessionCloseReason =
+  | "BILL_REQUESTED"
+  | "TIMEOUT"
+  | "REPLACED_BY_NEW_DEVICE"
+  | "CLOSED_BY_STAFF";
 
 export type TableSession = {
   id: string;
@@ -78,9 +84,12 @@ export type TableSession = {
   table_id: string;
   status: TableSessionStatus;
   session_token: string;
+  guest_device_token: string | null;
   opened_at: string;
   closed_at: string | null;
-  last_activity_at: string;
+  last_order_at: string | null;
+  expires_at: string | null;
+  close_reason: TableSessionCloseReason | null;
 };
 
 export type OrderStatus = "NEW" | "ACCEPTED" | "READY" | "DELIVERED" | "CANCELLED";

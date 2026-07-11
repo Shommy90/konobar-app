@@ -12,24 +12,57 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import {
   callWaiter,
+  establishGuestSession,
   placeOrder,
+  pollGuestSession,
   requestBill,
-  resolveTableSession,
-  type ResolvedSession,
+  type GuestSessionResult,
+  type GuestSessionState,
 } from "@/app/r/[restaurantSlug]/table/[tableToken]/actions";
 import { BillDialog } from "@/app/r/[restaurantSlug]/table/[tableToken]/BillDialog";
 import { CartDialog } from "@/app/r/[restaurantSlug]/table/[tableToken]/CartDialog";
 import { OrderStatusDialog } from "@/app/r/[restaurantSlug]/table/[tableToken]/OrderStatusDialog";
 import { ProductCard } from "@/app/r/[restaurantSlug]/table/[tableToken]/ProductCard";
+import { SessionEndedScreen } from "@/app/r/[restaurantSlug]/table/[tableToken]/SessionEndedScreen";
 import { clearCart, loadCart, saveCart, type CartItem } from "@/lib/guestCart";
-import { loadStoredSession, saveStoredSession } from "@/lib/guestSessionStorage";
+import { getOrCreateGuestDeviceToken } from "@/lib/guestDeviceToken";
+import { SESSION_EXPIRED_MESSAGE } from "@/lib/tableSession";
 import type { MenuCategory, MenuProduct, Restaurant, RestaurantTable } from "@/types/database";
+
+const ENDED_MESSAGE =
+  "This visit has ended. Scan the QR code on the table again to start a new session.";
+
+const POLL_INTERVAL_MS = 15000;
+
+type SessionState =
+  | { kind: "loading" }
+  | { kind: "unclaimed" }
+  | { kind: "active"; sessionId: string }
+  | { kind: "requested_bill"; sessionId: string }
+  | { kind: "ended"; message: string };
+
+function sessionStateFromGuestSession(session: GuestSessionState): SessionState {
+  if (session.state === "unclaimed") return { kind: "unclaimed" };
+  if (session.state === "active") return { kind: "active", sessionId: session.sessionId };
+  if (session.state === "requested_bill") {
+    return { kind: "requested_bill", sessionId: session.sessionId };
+  }
+  return { kind: "ended", message: ENDED_MESSAGE };
+}
+
+function toSessionState(result: GuestSessionResult): SessionState {
+  if (!result.success) {
+    return { kind: "ended", message: result.error };
+  }
+  return sessionStateFromGuestSession(result.session);
+}
 
 type GuestOrderingAppProps = {
   restaurant: Restaurant;
   table: RestaurantTable;
   categories: MenuCategory[];
   products: MenuProduct[];
+  scanNonce: string | null;
 };
 
 export function GuestOrderingApp({
@@ -37,12 +70,13 @@ export function GuestOrderingApp({
   table,
   categories,
   products,
+  scanNonce,
 }: GuestOrderingAppProps) {
   const tableToken = table.table_token;
 
   const [cart, setCart] = useState<CartItem[]>(() => loadCart(tableToken));
-  const [session, setSession] = useState<ResolvedSession | null>(null);
-  const [sessionLoading, setSessionLoading] = useState(true);
+  const [guestDeviceToken] = useState(() => getOrCreateGuestDeviceToken(tableToken));
+  const [session, setSession] = useState<SessionState>({ kind: "loading" });
 
   const [cartOpen, setCartOpen] = useState(false);
   const [billOpen, setBillOpen] = useState(false);
@@ -53,26 +87,31 @@ export function GuestOrderingApp({
   const [snackbar, setSnackbar] = useState<string | null>(null);
 
   useEffect(() => {
-    const cached = loadStoredSession(tableToken);
-    resolveTableSession({
+    establishGuestSession({
+      nonce: scanNonce ?? "",
       restaurantId: restaurant.id,
       tableId: table.id,
-      cachedSessionToken: cached?.sessionToken ?? null,
+      guestDeviceToken,
     }).then((result) => {
-      setSessionLoading(false);
-      if (result.success) {
-        setSession(result.session);
-        saveStoredSession(tableToken, {
-          restaurantId: restaurant.id,
-          tableId: table.id,
-          sessionId: result.session.id,
-          sessionToken: result.session.token,
-        });
-      }
+      setSession(toSessionState(result));
     });
-    // Only ever needs to run once per page load - restaurant/table are fixed for this page.
+    // Only ever needs to run once per page load - restaurant/table/nonce are fixed for this page.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const sessionId = session.kind === "active" || session.kind === "requested_bill" ? session.sessionId : null;
+
+  useEffect(() => {
+    if (!sessionId) return;
+
+    const interval = setInterval(() => {
+      pollGuestSession({ tableId: table.id, guestDeviceToken }).then((result) => {
+        setSession(toSessionState(result));
+      });
+    }, POLL_INTERVAL_MS);
+
+    return () => clearInterval(interval);
+  }, [sessionId, table.id, guestDeviceToken]);
 
   function persistCart(next: CartItem[]) {
     setCart(next);
@@ -126,14 +165,13 @@ export function GuestOrderingApp({
   }
 
   async function handlePlaceOrder() {
-    if (!session) return;
     setPlacing(true);
     setCartError(null);
 
     const result = await placeOrder({
       restaurantId: restaurant.id,
       tableId: table.id,
-      tableSessionId: session.id,
+      guestDeviceToken,
       items: cart.map((item) => ({
         productId: item.productId,
         quantity: item.quantity,
@@ -144,10 +182,16 @@ export function GuestOrderingApp({
     setPlacing(false);
 
     if (!result.success) {
+      if (result.error === SESSION_EXPIRED_MESSAGE) {
+        setSession({ kind: "ended", message: ENDED_MESSAGE });
+        setCartOpen(false);
+        return;
+      }
       setCartError(result.error);
       return;
     }
 
+    setSession(sessionStateFromGuestSession(result.session));
     persistCart([]);
     clearCart(tableToken);
     setCartOpen(false);
@@ -156,24 +200,16 @@ export function GuestOrderingApp({
   }
 
   async function handleCallWaiter() {
-    if (!session) return;
-    const result = await callWaiter({
-      restaurantId: restaurant.id,
-      tableId: table.id,
-      tableSessionId: session.id,
-    });
+    if (!sessionId) return;
+    const result = await callWaiter({ sessionId, guestDeviceToken });
     setSnackbar(result.success ? "Waiter has been notified." : result.error);
   }
 
   async function handleRequestBill() {
-    if (!session) return;
-    const result = await requestBill({
-      restaurantId: restaurant.id,
-      tableId: table.id,
-      tableSessionId: session.id,
-    });
+    if (!sessionId) return;
+    const result = await requestBill({ sessionId, guestDeviceToken });
     if (result.success) {
-      setSession({ ...session, status: "REQUESTED_BILL" });
+      setSession(toSessionState(result));
       setSnackbar("Bill requested - a staff member will be with you shortly.");
     } else {
       setSnackbar(result.error);
@@ -189,8 +225,18 @@ export function GuestOrderingApp({
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const uncategorized = products.filter((product) => !product.category_id);
-  const orderingLocked = session?.status !== "ACTIVE";
+  const orderingLocked = session.kind === "loading" || session.kind === "requested_bill";
   const hasAnyItems = products.length > 0;
+
+  if (session.kind === "ended") {
+    return (
+      <SessionEndedScreen
+        restaurantName={restaurant.name}
+        tableName={table.name}
+        message={session.message}
+      />
+    );
+  }
 
   return (
     <Container maxWidth="sm" sx={{ py: 4, pb: cartCount > 0 ? 12 : 4 }}>
@@ -201,28 +247,33 @@ export function GuestOrderingApp({
         {table.name}
       </Typography>
 
-      {session?.status === "REQUESTED_BILL" && (
+      {session.kind === "requested_bill" && (
         <Alert severity="info" sx={{ mb: 2 }}>
-          Bill requested - a staff member will be with you shortly.
+          Your bill has been requested. This ordering session is now closed.
         </Alert>
       )}
 
       <Stack direction="row" spacing={1} sx={{ mb: 3, flexWrap: "wrap" }}>
+        <Button size="small" variant="outlined" onClick={handleCallWaiter} disabled={!sessionId}>
+          Call Waiter
+        </Button>
         <Button
           size="small"
           variant="outlined"
-          onClick={handleCallWaiter}
-          disabled={sessionLoading}
+          onClick={() => setBillOpen(true)}
+          disabled={!sessionId}
         >
-          Call Waiter
-        </Button>
-        <Button size="small" variant="outlined" onClick={() => setBillOpen(true)}>
           Current Bill
         </Button>
-        <Button size="small" variant="outlined" onClick={() => setStatusOpen(true)}>
+        <Button
+          size="small"
+          variant="outlined"
+          onClick={() => setStatusOpen(true)}
+          disabled={!sessionId}
+        >
           Order Status
         </Button>
-        {session?.status === "ACTIVE" && (
+        {session.kind === "active" && (
           <Button size="small" variant="outlined" color="warning" onClick={handleRequestBill}>
             Request Bill
           </Button>
@@ -326,15 +377,11 @@ export function GuestOrderingApp({
         disabled={orderingLocked}
         error={cartError}
       />
-      <BillDialog
-        open={billOpen}
-        onClose={() => setBillOpen(false)}
-        tableSessionId={session?.id ?? null}
-      />
+      <BillDialog open={billOpen} onClose={() => setBillOpen(false)} tableSessionId={sessionId} />
       <OrderStatusDialog
         open={statusOpen}
         onClose={() => setStatusOpen(false)}
-        tableSessionId={session?.id ?? null}
+        tableSessionId={sessionId}
       />
 
       <Snackbar
