@@ -54,38 +54,6 @@ export async function cancelOrder(orderId: string): Promise<ActionResult> {
   return { success: true };
 }
 
-export async function markOrderReady(orderId: string): Promise<ActionResult> {
-  const current = await requireStaffOrOwner();
-  const supabase = await createClient();
-
-  const { error } = await supabase
-    .from("orders")
-    .update({ status: "READY" })
-    .eq("id", orderId)
-    .eq("restaurant_id", current.profile.restaurant_id)
-    .eq("status", "ACCEPTED");
-
-  if (error) return { success: false, error: error.message };
-  revalidatePath("/staff");
-  return { success: true };
-}
-
-export async function markOrderDelivered(orderId: string): Promise<ActionResult> {
-  const current = await requireStaffOrOwner();
-  const supabase = await createClient();
-
-  const { error } = await supabase
-    .from("orders")
-    .update({ status: "DELIVERED" })
-    .eq("id", orderId)
-    .eq("restaurant_id", current.profile.restaurant_id)
-    .eq("status", "READY");
-
-  if (error) return { success: false, error: error.message };
-  revalidatePath("/staff");
-  return { success: true };
-}
-
 export async function dismissServiceRequest(requestId: string): Promise<ActionResult> {
   const current = await requireStaffOrOwner();
   const supabase = await createClient();

@@ -16,8 +16,6 @@ import {
   cancelOrder,
   closeTableSession,
   dismissServiceRequest,
-  markOrderDelivered,
-  markOrderReady,
   refreshStaffDashboard,
 } from "@/app/staff/actions";
 import { ActiveTableCard } from "@/app/staff/ActiveTableCard";
@@ -165,20 +163,6 @@ export function StaffDashboard({
     else toast.error(result.error);
   }
 
-  async function handleMarkReady(orderId: string) {
-    const result = await markOrderReady(orderId);
-    await refetch();
-    if (result.success) toast.success("Order marked ready.");
-    else toast.error(result.error);
-  }
-
-  async function handleMarkDelivered(orderId: string) {
-    const result = await markOrderDelivered(orderId);
-    await refetch();
-    if (result.success) toast.success("Order marked delivered.");
-    else toast.error(result.error);
-  }
-
   async function handleDismissRequest(requestId: string) {
     const result = await dismissServiceRequest(requestId);
     await refetch();
@@ -194,8 +178,7 @@ export function StaffDashboard({
 
   const sections: Section[] = [
     { title: "New Orders", orders: orders.filter((order) => order.status === "NEW") },
-    { title: "Active Orders", orders: orders.filter((order) => order.status === "ACCEPTED") },
-    { title: "Ready", orders: orders.filter((order) => order.status === "READY") },
+    { title: "Accepted Orders", orders: orders.filter((order) => order.status === "ACCEPTED") },
   ];
 
   const sessionTotalById = new Map(activeSessions.map((session) => [session.id, session.total]));
@@ -212,7 +195,7 @@ export function StaffDashboard({
 
       <Grid container spacing={2}>
         {sections.map((section) => (
-          <Grid key={section.title} size={{ xs: 12, md: 4 }}>
+          <Grid key={section.title} size={{ xs: 12, md: 6 }}>
             <Typography variant="h5" gutterBottom sx={{ fontWeight: 700 }}>
               {section.title.toUpperCase()} ({section.orders.length})
             </Typography>
@@ -227,8 +210,6 @@ export function StaffDashboard({
                     now={now}
                     onAccept={handleAccept}
                     onCancel={handleCancel}
-                    onMarkReady={handleMarkReady}
-                    onMarkDelivered={handleMarkDelivered}
                   />
                 ))
               )}

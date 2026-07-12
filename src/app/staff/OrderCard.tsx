@@ -9,8 +9,6 @@ import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import CheckCircleOutlinedIcon from "@mui/icons-material/CheckCircleOutlined";
-import DoneAllOutlinedIcon from "@mui/icons-material/DoneAllOutlined";
-import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
 import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { OrderStatusChip } from "@/components/OrderStatusChip";
@@ -22,24 +20,15 @@ type OrderCardProps = {
   now: number | null;
   onAccept: (orderId: string) => Promise<void>;
   onCancel: (orderId: string) => Promise<void>;
-  onMarkReady: (orderId: string) => Promise<void>;
-  onMarkDelivered: (orderId: string) => Promise<void>;
 };
 
-export function OrderCard({
-  order,
-  now,
-  onAccept,
-  onCancel,
-  onMarkReady,
-  onMarkDelivered,
-}: OrderCardProps) {
+export function OrderCard({ order, now, onAccept, onCancel }: OrderCardProps) {
   const [busy, setBusy] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
 
-  async function handle(action: (id: string) => Promise<void>) {
+  async function handleAccept() {
     setBusy(true);
-    await action(order.id);
+    await onAccept(order.id);
     setBusy(false);
   }
 
@@ -100,59 +89,32 @@ export function OrderCard({
 
         <Typography variant="h6">Total: {order.total_price.toFixed(2)}</Typography>
 
-        <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
-          {order.status === "NEW" && (
-            <>
-              <Button
-                fullWidth
-                size="large"
-                variant="contained"
-                color="success"
-                startIcon={<CheckCircleOutlinedIcon />}
-                disabled={busy}
-                onClick={() => handle(onAccept)}
-              >
-                Accept Order
-              </Button>
-              <Button
-                fullWidth
-                size="large"
-                variant="outlined"
-                color="error"
-                startIcon={<CloseOutlinedIcon />}
-                disabled={busy}
-                onClick={() => setCancelOpen(true)}
-              >
-                Cancel
-              </Button>
-            </>
-          )}
-          {order.status === "ACCEPTED" && (
-            <Button
-              fullWidth
-              size="large"
-              variant="contained"
-              startIcon={<LocalShippingOutlinedIcon />}
-              disabled={busy}
-              onClick={() => handle(onMarkReady)}
-            >
-              Mark Ready
-            </Button>
-          )}
-          {order.status === "READY" && (
+        {order.status === "NEW" && (
+          <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
             <Button
               fullWidth
               size="large"
               variant="contained"
               color="success"
-              startIcon={<DoneAllOutlinedIcon />}
+              startIcon={<CheckCircleOutlinedIcon />}
               disabled={busy}
-              onClick={() => handle(onMarkDelivered)}
+              onClick={handleAccept}
             >
-              Mark Delivered
+              Accept Order
             </Button>
-          )}
-        </Stack>
+            <Button
+              fullWidth
+              size="large"
+              variant="outlined"
+              color="error"
+              startIcon={<CloseOutlinedIcon />}
+              disabled={busy}
+              onClick={() => setCancelOpen(true)}
+            >
+              Cancel
+            </Button>
+          </Stack>
+        )}
       </CardContent>
 
       <ConfirmDialog
