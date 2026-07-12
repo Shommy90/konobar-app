@@ -10,7 +10,8 @@ import TableCell from "@mui/material/TableCell";
 import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
-import Typography from "@mui/material/Typography";
+import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
+import { EmptyState } from "@/components/EmptyState";
 import { RestaurantStatusChip } from "@/components/RestaurantStatusChip";
 import { StatusToggleButton } from "@/app/super-admin/StatusToggleButton";
 import type { RestaurantWithRelations } from "@/app/super-admin/data";
@@ -20,9 +21,11 @@ export function RestaurantsTable({ restaurants }: { restaurants: RestaurantWithR
   if (restaurants.length === 0) {
     return (
       <Paper variant="outlined" sx={{ p: 3 }}>
-        <Typography color="text.secondary">
-          No restaurants yet. Create the first one above.
-        </Typography>
+        <EmptyState
+          icon={<StorefrontOutlinedIcon />}
+          title="No restaurants yet"
+          description="Create the first one to get started."
+        />
       </Paper>
     );
   }

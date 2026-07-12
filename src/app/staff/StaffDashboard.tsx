@@ -10,6 +10,7 @@ import Typography from "@mui/material/Typography";
 import { createClient } from "@/lib/supabase/client";
 import { playNotificationSound, unlockNotificationSound } from "@/lib/notificationSound";
 import { useNow } from "@/lib/useNow";
+import { useToast } from "@/lib/toast/ToastProvider";
 import {
   acceptOrder,
   cancelOrder,
@@ -23,6 +24,7 @@ import { ActiveTableCard } from "@/app/staff/ActiveTableCard";
 import { OrderCard } from "@/app/staff/OrderCard";
 import { ServiceRequestCard } from "@/app/staff/ServiceRequestCard";
 import { SessionOrdersDialog } from "@/app/staff/SessionOrdersDialog";
+import { EmptyState } from "@/components/EmptyState";
 import type {
   StaffActiveSession,
   StaffDashboardData,
@@ -49,6 +51,7 @@ export function StaffDashboard({
   restaurantName: string;
   initialData: StaffDashboardData;
 }) {
+  const toast = useToast();
   const [orders, setOrders] = useState<StaffOrder[]>(initialData.orders);
   const [serviceRequests, setServiceRequests] = useState<StaffServiceRequest[]>(
     initialData.serviceRequests,
@@ -149,33 +152,44 @@ export function StaffDashboard({
   }
 
   async function handleAccept(orderId: string) {
-    await acceptOrder(orderId);
+    const result = await acceptOrder(orderId);
     await refetch();
+    if (result.success) toast.success("Order accepted.");
+    else toast.error(result.error);
   }
 
   async function handleCancel(orderId: string) {
-    await cancelOrder(orderId);
+    const result = await cancelOrder(orderId);
     await refetch();
+    if (result.success) toast.success("Order cancelled.");
+    else toast.error(result.error);
   }
 
   async function handleMarkReady(orderId: string) {
-    await markOrderReady(orderId);
+    const result = await markOrderReady(orderId);
     await refetch();
+    if (result.success) toast.success("Order marked ready.");
+    else toast.error(result.error);
   }
 
   async function handleMarkDelivered(orderId: string) {
-    await markOrderDelivered(orderId);
+    const result = await markOrderDelivered(orderId);
     await refetch();
+    if (result.success) toast.success("Order marked delivered.");
+    else toast.error(result.error);
   }
 
   async function handleDismissRequest(requestId: string) {
-    await dismissServiceRequest(requestId);
+    const result = await dismissServiceRequest(requestId);
     await refetch();
+    if (!result.success) toast.error(result.error);
   }
 
   async function handleCloseTable(sessionId: string) {
-    await closeTableSession(sessionId);
+    const result = await closeTableSession(sessionId);
     await refetch();
+    if (result.success) toast.success("Table closed.");
+    else toast.error(result.error);
   }
 
   const sections: Section[] = [
@@ -199,12 +213,12 @@ export function StaffDashboard({
       <Grid container spacing={2}>
         {sections.map((section) => (
           <Grid key={section.title} size={{ xs: 12, md: 4 }}>
-            <Typography variant="h5" gutterBottom>
+            <Typography variant="h5" gutterBottom sx={{ fontWeight: 700 }}>
               {section.title.toUpperCase()} ({section.orders.length})
             </Typography>
             <Stack spacing={2}>
               {section.orders.length === 0 ? (
-                <Typography color="text.secondary">Nothing here.</Typography>
+                <EmptyState title="Nothing here" />
               ) : (
                 section.orders.map((order) => (
                   <OrderCard
@@ -226,9 +240,11 @@ export function StaffDashboard({
       <Divider />
 
       <Stack spacing={2}>
-        <Typography variant="h5">SERVICE REQUESTS ({serviceRequests.length})</Typography>
+        <Typography variant="h5" sx={{ fontWeight: 700 }}>
+          SERVICE REQUESTS ({serviceRequests.length})
+        </Typography>
         {serviceRequests.length === 0 ? (
-          <Typography color="text.secondary">No open requests.</Typography>
+          <EmptyState title="No open requests" />
         ) : (
           <Grid container spacing={2}>
             {serviceRequests.map((request) => (
@@ -248,9 +264,11 @@ export function StaffDashboard({
       <Divider />
 
       <Stack spacing={2}>
-        <Typography variant="h5">ACTIVE TABLES</Typography>
+        <Typography variant="h5" sx={{ fontWeight: 700 }}>
+          ACTIVE TABLES
+        </Typography>
         {activeSessions.length === 0 ? (
-          <Typography color="text.secondary">No active tables right now.</Typography>
+          <EmptyState title="No active tables right now" />
         ) : (
           <Grid container spacing={2}>
             {activeSessions.map((session) => (

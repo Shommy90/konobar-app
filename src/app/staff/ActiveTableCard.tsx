@@ -7,6 +7,7 @@ import CardContent from "@mui/material/CardContent";
 import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { formatElapsedMinutes, formatRemainingMinutes } from "@/lib/elapsed";
 import type { StaffActiveSession } from "@/app/staff/data";
 
@@ -24,17 +25,18 @@ export function ActiveTableCard({
   onCloseTable,
 }: ActiveTableCardProps) {
   const [busy, setBusy] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const tableLabel = session.restaurant_tables?.name ?? "Table";
 
-  async function handleClose() {
-    if (!window.confirm(`Close ${tableLabel}? This ends the guest's session.`)) return;
+  async function handleConfirmClose() {
     setBusy(true);
     await onCloseTable(session.id);
     setBusy(false);
+    setConfirmOpen(false);
   }
 
   return (
-    <Card variant="outlined">
+    <Card>
       <CardContent>
         <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
@@ -62,12 +64,22 @@ export function ActiveTableCard({
             variant="outlined"
             color="error"
             disabled={busy}
-            onClick={handleClose}
+            onClick={() => setConfirmOpen(true)}
           >
             Close Table
           </Button>
         </Stack>
       </CardContent>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={handleConfirmClose}
+        title="Close this table?"
+        description={`Close ${tableLabel}? This ends the guest's ordering session immediately.`}
+        confirmLabel="Close Table"
+        pending={busy}
+      />
     </Card>
   );
 }

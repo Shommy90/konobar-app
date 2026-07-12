@@ -1,5 +1,6 @@
 import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
+import EventBusyOutlinedIcon from "@mui/icons-material/EventBusyOutlined";
 
 export function SessionEndedScreen({
   restaurantName,
@@ -12,6 +13,7 @@ export function SessionEndedScreen({
 }) {
   return (
     <Container maxWidth="sm" sx={{ py: 8, textAlign: "center" }}>
+      <EventBusyOutlinedIcon color="disabled" sx={{ fontSize: 56, mb: 2 }} />
       <Typography variant="h5" component="h1" gutterBottom>
         {restaurantName}
       </Typography>

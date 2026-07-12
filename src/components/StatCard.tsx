@@ -4,7 +4,7 @@ import Typography from "@mui/material/Typography";
 
 export function StatCard({ label, value }: { label: string; value: number }) {
   return (
-    <Card variant="outlined">
+    <Card>
       <CardContent>
         <Typography variant="overline" color="text.secondary">
           {label}

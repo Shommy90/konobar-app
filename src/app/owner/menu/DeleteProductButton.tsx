@@ -4,7 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { deleteProduct } from "@/app/owner/menu/actions";
+import { useServerAction } from "@/lib/useServerAction";
+import { useToast } from "@/lib/toast/ToastProvider";
 
 export function DeleteProductButton({
   productId,
@@ -14,22 +17,17 @@ export function DeleteProductButton({
   productName: string;
 }) {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const { run, loading, error } = useServerAction(deleteProduct);
 
-  async function handleClick() {
-    if (!window.confirm(`Delete "${productName}"? This cannot be undone.`)) {
-      return;
+  async function handleConfirm() {
+    const ok = await run(productId);
+    if (ok) {
+      setConfirmOpen(false);
+      router.refresh();
+      toast.success("Product deleted.");
     }
-    setLoading(true);
-    setError(null);
-    const result = await deleteProduct(productId);
-    setLoading(false);
-    if (!result.success) {
-      setError(result.error);
-      return;
-    }
-    router.refresh();
   }
 
   return (
@@ -39,7 +37,7 @@ export function DeleteProductButton({
         variant="outlined"
         color="error"
         disabled={loading}
-        onClick={handleClick}
+        onClick={() => setConfirmOpen(true)}
       >
         Delete
       </Button>
@@ -48,6 +46,15 @@ export function DeleteProductButton({
           {error}
         </Typography>
       )}
+      <ConfirmDialog
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={handleConfirm}
+        title="Delete product?"
+        description={`Delete "${productName}"? This cannot be undone.`}
+        confirmLabel="Delete"
+        pending={loading}
+      />
     </>
   );
 }

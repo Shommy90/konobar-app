@@ -7,8 +7,9 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Container from "@mui/material/Container";
 import Paper from "@mui/material/Paper";
-import Snackbar from "@mui/material/Snackbar";
 import Stack from "@mui/material/Stack";
+import Tab from "@mui/material/Tab";
+import Tabs from "@mui/material/Tabs";
 import Typography from "@mui/material/Typography";
 import {
   callWaiter,
@@ -21,18 +22,21 @@ import {
 } from "@/app/r/[restaurantSlug]/table/[tableToken]/actions";
 import { BillDialog } from "@/app/r/[restaurantSlug]/table/[tableToken]/BillDialog";
 import { CartDialog } from "@/app/r/[restaurantSlug]/table/[tableToken]/CartDialog";
+import { OrderConfirmationScreen } from "@/app/r/[restaurantSlug]/table/[tableToken]/OrderConfirmationScreen";
 import { OrderStatusDialog } from "@/app/r/[restaurantSlug]/table/[tableToken]/OrderStatusDialog";
 import { ProductCard } from "@/app/r/[restaurantSlug]/table/[tableToken]/ProductCard";
 import { SessionEndedScreen } from "@/app/r/[restaurantSlug]/table/[tableToken]/SessionEndedScreen";
 import { clearCart, loadCart, saveCart, type CartItem } from "@/lib/guestCart";
 import { getOrCreateGuestDeviceToken } from "@/lib/guestDeviceToken";
 import { SESSION_EXPIRED_MESSAGE } from "@/lib/tableSession";
+import { useToast } from "@/lib/toast/ToastProvider";
 import type { MenuCategory, MenuProduct, Restaurant, RestaurantTable } from "@/types/database";
 
 const ENDED_MESSAGE =
   "This visit has ended. Scan the QR code on the table again to start a new session.";
 
 const POLL_INTERVAL_MS = 15000;
+const CATEGORY_TABS_TOP_OFFSET = 0;
 
 type SessionState =
   | { kind: "loading" }
@@ -40,6 +44,8 @@ type SessionState =
   | { kind: "active"; sessionId: string }
   | { kind: "requested_bill"; sessionId: string }
   | { kind: "ended"; message: string };
+
+type OrderConfirmation = { orderId: string; items: CartItem[]; total: number };
 
 function sessionStateFromGuestSession(session: GuestSessionState): SessionState {
   if (session.state === "unclaimed") return { kind: "unclaimed" };
@@ -73,10 +79,12 @@ export function GuestOrderingApp({
   scanNonce,
 }: GuestOrderingAppProps) {
   const tableToken = table.table_token;
+  const toast = useToast();
 
   const [cart, setCart] = useState<CartItem[]>(() => loadCart(tableToken));
   const [guestDeviceToken] = useState(() => getOrCreateGuestDeviceToken(tableToken));
   const [session, setSession] = useState<SessionState>({ kind: "loading" });
+  const [orderConfirmation, setOrderConfirmation] = useState<OrderConfirmation | null>(null);
 
   const [cartOpen, setCartOpen] = useState(false);
   const [billOpen, setBillOpen] = useState(false);
@@ -84,7 +92,6 @@ export function GuestOrderingApp({
 
   const [placing, setPlacing] = useState(false);
   const [cartError, setCartError] = useState<string | null>(null);
-  const [snackbar, setSnackbar] = useState<string | null>(null);
 
   useEffect(() => {
     establishGuestSession({
@@ -99,7 +106,8 @@ export function GuestOrderingApp({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const sessionId = session.kind === "active" || session.kind === "requested_bill" ? session.sessionId : null;
+  const sessionId =
+    session.kind === "active" || session.kind === "requested_bill" ? session.sessionId : null;
 
   useEffect(() => {
     if (!sessionId) return;
@@ -168,11 +176,17 @@ export function GuestOrderingApp({
     setPlacing(true);
     setCartError(null);
 
+    const cartAtSubmit = cart;
+    const cartTotalAtSubmit = cartAtSubmit.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0,
+    );
+
     const result = await placeOrder({
       restaurantId: restaurant.id,
       tableId: table.id,
       guestDeviceToken,
-      items: cart.map((item) => ({
+      items: cartAtSubmit.map((item) => ({
         productId: item.productId,
         quantity: item.quantity,
         note: item.note,
@@ -195,14 +209,21 @@ export function GuestOrderingApp({
     persistCart([]);
     clearCart(tableToken);
     setCartOpen(false);
-    setSnackbar("Your order was sent!");
-    setStatusOpen(true);
+    setOrderConfirmation({
+      orderId: result.orderId,
+      items: cartAtSubmit,
+      total: cartTotalAtSubmit,
+    });
   }
 
   async function handleCallWaiter() {
     if (!sessionId) return;
     const result = await callWaiter({ sessionId, guestDeviceToken });
-    setSnackbar(result.success ? "Waiter has been notified." : result.error);
+    if (result.success) {
+      toast.success("Waiter has been notified.");
+    } else {
+      toast.error(result.error);
+    }
   }
 
   async function handleRequestBill() {
@@ -210,9 +231,9 @@ export function GuestOrderingApp({
     const result = await requestBill({ sessionId, guestDeviceToken });
     if (result.success) {
       setSession(toSessionState(result));
-      setSnackbar("Bill requested - a staff member will be with you shortly.");
+      toast.success("Bill requested - a staff member will be with you shortly.");
     } else {
-      setSnackbar(result.error);
+      toast.error(result.error);
     }
   }
 
@@ -227,6 +248,33 @@ export function GuestOrderingApp({
   const uncategorized = products.filter((product) => !product.category_id);
   const orderingLocked = session.kind === "loading" || session.kind === "requested_bill";
   const hasAnyItems = products.length > 0;
+
+  const categoriesWithProducts = categories.filter((category) =>
+    products.some((product) => product.category_id === category.id),
+  );
+  const [activeCategoryId, setActiveCategoryId] = useState<string | false>(
+    categoriesWithProducts[0]?.id ?? false,
+  );
+
+  function handleCategoryTabChange(categoryId: string) {
+    setActiveCategoryId(categoryId);
+    document
+      .getElementById(`category-${categoryId}`)
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  if (orderConfirmation) {
+    return (
+      <OrderConfirmationScreen
+        restaurantName={restaurant.name}
+        tableName={table.name}
+        orderId={orderConfirmation.orderId}
+        items={orderConfirmation.items}
+        total={orderConfirmation.total}
+        onContinue={() => setOrderConfirmation(null)}
+      />
+    );
+  }
 
   if (session.kind === "ended") {
     return (
@@ -283,23 +331,75 @@ export function GuestOrderingApp({
       {!hasAnyItems ? (
         <Typography color="text.secondary">Menu coming soon.</Typography>
       ) : (
-        <Stack spacing={3}>
-          {categories.map((category) => {
-            const categoryProducts = products.filter(
-              (product) => product.category_id === category.id,
-            );
-            if (categoryProducts.length === 0) return null;
+        <>
+          {categoriesWithProducts.length > 1 && (
+            <Box
+              sx={{
+                position: "sticky",
+                top: CATEGORY_TABS_TOP_OFFSET,
+                zIndex: (theme) => theme.zIndex.appBar,
+                bgcolor: "background.default",
+                mb: 2,
+                borderBottom: 1,
+                borderColor: "divider",
+              }}
+            >
+              <Tabs
+                value={activeCategoryId}
+                onChange={(_event, value: string) => handleCategoryTabChange(value)}
+                variant="scrollable"
+                scrollButtons="auto"
+                allowScrollButtonsMobile
+              >
+                {categoriesWithProducts.map((category) => (
+                  <Tab key={category.id} value={category.id} label={category.name} />
+                ))}
+              </Tabs>
+            </Box>
+          )}
 
-            return (
-              <Paper key={category.id} variant="outlined" sx={{ p: 2 }}>
-                <Typography variant="h6">{category.name}</Typography>
-                {category.description && (
-                  <Typography variant="body2" color="text.secondary">
-                    {category.description}
-                  </Typography>
-                )}
+          <Stack spacing={3}>
+            {categories.map((category) => {
+              const categoryProducts = products.filter(
+                (product) => product.category_id === category.id,
+              );
+              if (categoryProducts.length === 0) return null;
+
+              return (
+                <Paper
+                  key={category.id}
+                  id={`category-${category.id}`}
+                  variant="outlined"
+                  sx={{ p: 2, scrollMarginTop: 64 }}
+                >
+                  <Typography variant="h6">{category.name}</Typography>
+                  {category.description && (
+                    <Typography variant="body2" color="text.secondary">
+                      {category.description}
+                    </Typography>
+                  )}
+                  <Stack divider={<Box sx={{ borderBottom: 1, borderColor: "divider" }} />}>
+                    {categoryProducts.map((product) => (
+                      <ProductCard
+                        key={product.id}
+                        product={product}
+                        quantityInCart={cartQuantities.get(product.id) ?? 0}
+                        onAdd={() => handleAdd(product)}
+                        onIncrement={() => handleIncrement(product.id)}
+                        onDecrement={() => handleDecrement(product.id)}
+                        disabled={orderingLocked}
+                      />
+                    ))}
+                  </Stack>
+                </Paper>
+              );
+            })}
+
+            {uncategorized.length > 0 && (
+              <Paper variant="outlined" sx={{ p: 2 }}>
+                <Typography variant="h6">Other Items</Typography>
                 <Stack divider={<Box sx={{ borderBottom: 1, borderColor: "divider" }} />}>
-                  {categoryProducts.map((product) => (
+                  {uncategorized.map((product) => (
                     <ProductCard
                       key={product.id}
                       product={product}
@@ -312,28 +412,9 @@ export function GuestOrderingApp({
                   ))}
                 </Stack>
               </Paper>
-            );
-          })}
-
-          {uncategorized.length > 0 && (
-            <Paper variant="outlined" sx={{ p: 2 }}>
-              <Typography variant="h6">Other Items</Typography>
-              <Stack divider={<Box sx={{ borderBottom: 1, borderColor: "divider" }} />}>
-                {uncategorized.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    quantityInCart={cartQuantities.get(product.id) ?? 0}
-                    onAdd={() => handleAdd(product)}
-                    onIncrement={() => handleIncrement(product.id)}
-                    onDecrement={() => handleDecrement(product.id)}
-                    disabled={orderingLocked}
-                  />
-                ))}
-              </Stack>
-            </Paper>
-          )}
-        </Stack>
+            )}
+          </Stack>
+        </>
       )}
 
       {cartCount > 0 && (
@@ -368,6 +449,7 @@ export function GuestOrderingApp({
         open={cartOpen}
         onClose={() => setCartOpen(false)}
         items={cart}
+        products={products}
         onIncrement={handleIncrement}
         onDecrement={handleDecrement}
         onRemove={handleRemove}
@@ -382,13 +464,6 @@ export function GuestOrderingApp({
         open={statusOpen}
         onClose={() => setStatusOpen(false)}
         tableSessionId={sessionId}
-      />
-
-      <Snackbar
-        open={snackbar !== null}
-        autoHideDuration={3000}
-        onClose={() => setSnackbar(null)}
-        message={snackbar}
       />
     </Container>
   );

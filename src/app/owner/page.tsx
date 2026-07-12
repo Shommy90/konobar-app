@@ -8,7 +8,11 @@ import Typography from "@mui/material/Typography";
 import { getCurrentProfile } from "@/lib/auth/getCurrentProfile";
 import { getOwnerRestaurant, getOwnerTables } from "@/app/owner/data";
 import { LinkButton } from "@/components/LinkButton";
+import { PagePlaceholder } from "@/components/layout/PagePlaceholder";
+import { PageHeader } from "@/components/PageHeader";
 import { RestaurantStatusChip } from "@/components/RestaurantStatusChip";
+import { SectionHeader } from "@/components/SectionHeader";
+import { StatCard } from "@/components/StatCard";
 
 export default async function OwnerPage() {
   const current = await getCurrentProfile();
@@ -25,11 +29,10 @@ export default async function OwnerPage() {
 
   if (!restaurant) {
     return (
-      <Container maxWidth="md" sx={{ py: 4 }}>
-        <Typography color="text.secondary">
-          No restaurant is linked to your account yet. Contact your platform administrator.
-        </Typography>
-      </Container>
+      <PagePlaceholder
+        title="No restaurant linked"
+        description="No restaurant is linked to your account yet. Contact your platform administrator."
+      />
     );
   }
 
@@ -37,13 +40,11 @@ export default async function OwnerPage() {
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
-        Restaurant Owner Dashboard
-      </Typography>
+      <PageHeader title="Restaurant Owner Dashboard" />
 
       <Grid container spacing={2} sx={{ mb: 4 }}>
         <Grid size={{ xs: 12, sm: 6 }}>
-          <Card variant="outlined">
+          <Card>
             <CardContent>
               <Typography variant="overline" color="text.secondary">
                 Restaurant
@@ -58,34 +59,19 @@ export default async function OwnerPage() {
           </Card>
         </Grid>
         <Grid size={{ xs: 6, sm: 3 }}>
-          <Card variant="outlined">
-            <CardContent>
-              <Typography variant="overline" color="text.secondary">
-                Tables
-              </Typography>
-              <Typography variant="h4" component="p">
-                {tables.length}
-              </Typography>
-            </CardContent>
-          </Card>
+          <StatCard label="Tables" value={tables.length} />
+          {tables.length === 0 && (
+            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
+              No tables yet - add one below.
+            </Typography>
+          )}
         </Grid>
         <Grid size={{ xs: 6, sm: 3 }}>
-          <Card variant="outlined">
-            <CardContent>
-              <Typography variant="overline" color="text.secondary">
-                Active tables
-              </Typography>
-              <Typography variant="h4" component="p">
-                {activeTables}
-              </Typography>
-            </CardContent>
-          </Card>
+          <StatCard label="Active tables" value={activeTables} />
         </Grid>
       </Grid>
 
-      <Typography variant="h6" component="h2" gutterBottom>
-        Quick actions
-      </Typography>
+      <SectionHeader title="Quick actions" />
       <Stack direction="row" spacing={2}>
         <LinkButton variant="contained" href="/owner/tables">
           Manage Tables

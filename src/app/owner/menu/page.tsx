@@ -11,6 +11,7 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Typography from "@mui/material/Typography";
+import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import { getCurrentProfile } from "@/lib/auth/getCurrentProfile";
 import { getOwnerCategories, getOwnerProducts } from "@/app/owner/data";
@@ -21,6 +22,8 @@ import { DeleteProductButton } from "@/app/owner/menu/DeleteProductButton";
 import { EditCategoryDialog } from "@/app/owner/menu/EditCategoryDialog";
 import { EditProductDialog } from "@/app/owner/menu/EditProductDialog";
 import { ProductAvailableToggleButton } from "@/app/owner/menu/ProductAvailableToggleButton";
+import { EmptyState } from "@/components/EmptyState";
+import { PageHeader } from "@/components/PageHeader";
 import { getProductImageUrl } from "@/lib/productImage";
 import type { MenuProduct } from "@/types/database";
 
@@ -35,9 +38,9 @@ function ProductsTable({
 }) {
   if (products.length === 0) {
     return (
-      <Typography color="text.secondary" sx={{ px: 2, py: 1.5 }}>
-        No products in this category yet.
-      </Typography>
+      <Box sx={{ py: 1 }}>
+        <EmptyState icon={<ImageOutlinedIcon />} title="No products in this category yet" />
+      </Box>
     );
   }
 
@@ -157,20 +160,24 @@ export default async function OwnerMenuPage() {
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 3 }}>
-        <Typography variant="h4" component="h1">
-          Menu
-        </Typography>
-        <Stack direction="row" spacing={1}>
-          <CreateProductDialog restaurantId={restaurantId} categories={categoryOptions} />
-          <CreateCategoryDialog />
-        </Stack>
-      </Stack>
+      <PageHeader
+        title="Menu"
+        description="Manage the categories and products guests see on the ordering page."
+        breadcrumbs={[{ label: "Owner", href: "/owner" }, { label: "Menu" }]}
+        action={
+          <Stack direction="row" spacing={1}>
+            <CreateProductDialog restaurantId={restaurantId} categories={categoryOptions} />
+            <CreateCategoryDialog />
+          </Stack>
+        }
+      />
 
       {categories.length === 0 ? (
-        <Typography color="text.secondary">
-          No categories yet. Create your first category to start adding products.
-        </Typography>
+        <EmptyState
+          icon={<CategoryOutlinedIcon />}
+          title="No categories yet"
+          description="Create your first category to start adding products."
+        />
       ) : (
         <Stack spacing={3}>
           {categories.map((category) => (

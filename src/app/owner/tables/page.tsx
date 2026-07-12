@@ -1,14 +1,16 @@
 import { redirect } from "next/navigation";
 import Container from "@mui/material/Container";
 import Grid from "@mui/material/Grid";
-import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
+import QrCode2OutlinedIcon from "@mui/icons-material/QrCode2Outlined";
 import { getCurrentProfile } from "@/lib/auth/getCurrentProfile";
 import { getOwnerRestaurant, getOwnerTables } from "@/app/owner/data";
 import { generateQrCodeDataUrl } from "@/lib/qr";
 import { getBaseUrl, getGuestTableUrl } from "@/lib/url";
 import { CreateTableDialog } from "@/app/owner/tables/CreateTableDialog";
 import { TableCard } from "@/app/owner/tables/TableCard";
+import { EmptyState } from "@/components/EmptyState";
+import { PageHeader } from "@/components/PageHeader";
+import { PagePlaceholder } from "@/components/layout/PagePlaceholder";
 
 export default async function OwnerTablesPage() {
   const current = await getCurrentProfile();
@@ -26,11 +28,10 @@ export default async function OwnerTablesPage() {
 
   if (!restaurant) {
     return (
-      <Container maxWidth="md" sx={{ py: 4 }}>
-        <Typography color="text.secondary">
-          No restaurant is linked to your account yet. Contact your platform administrator.
-        </Typography>
-      </Container>
+      <PagePlaceholder
+        title="No restaurant linked"
+        description="No restaurant is linked to your account yet. Contact your platform administrator."
+      />
     );
   }
 
@@ -44,17 +45,19 @@ export default async function OwnerTablesPage() {
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 3 }}>
-        <Typography variant="h4" component="h1">
-          Tables
-        </Typography>
-        <CreateTableDialog />
-      </Stack>
+      <PageHeader
+        title="Tables"
+        description="Generate and manage the QR codes guests scan to order."
+        breadcrumbs={[{ label: "Owner", href: "/owner" }, { label: "Tables" }]}
+        action={<CreateTableDialog />}
+      />
 
       {tableCards.length === 0 ? (
-        <Typography color="text.secondary">
-          No tables yet. Create your first table to generate its QR code.
-        </Typography>
+        <EmptyState
+          icon={<QrCode2OutlinedIcon />}
+          title="No tables yet"
+          description="Create your first table to generate its QR code."
+        />
       ) : (
         <Grid container spacing={2}>
           {tableCards.map(({ table, guestUrl, qrDataUrl }) => (

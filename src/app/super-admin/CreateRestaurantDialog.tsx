@@ -2,17 +2,12 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import Alert from "@mui/material/Alert";
-import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Dialog from "@mui/material/Dialog";
-import DialogActions from "@mui/material/DialogActions";
-import DialogContent from "@mui/material/DialogContent";
-import DialogTitle from "@mui/material/DialogTitle";
 import MenuItem from "@mui/material/MenuItem";
-import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
+import { FormDialog } from "@/components/FormDialog";
 import { createRestaurant } from "@/app/super-admin/actions";
+import { useToast } from "@/lib/toast/ToastProvider";
 import { submitOnEnter } from "@/lib/submitOnEnter";
 import type { RestaurantStatus, SubscriptionPlan } from "@/types/database";
 
@@ -31,6 +26,7 @@ const EMPTY_FORM = {
 
 export function CreateRestaurantDialog() {
   const router = useRouter();
+  const toast = useToast();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [error, setError] = useState<string | null>(null);
@@ -58,6 +54,7 @@ export function CreateRestaurantDialog() {
 
     router.refresh();
     handleClose();
+    toast.success("Restaurant created.");
   }
 
   return (
@@ -65,94 +62,86 @@ export function CreateRestaurantDialog() {
       <Button variant="contained" onClick={() => setOpen(true)}>
         Create Restaurant
       </Button>
-      <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
-        <DialogTitle>Create Restaurant</DialogTitle>
-        <Box component="form" onSubmit={handleSubmit}>
-          <DialogContent>
-            <Stack spacing={2}>
-              <TextField
-                label="Name"
-                value={form.name}
-                onChange={(event) => setForm({ ...form, name: event.target.value })}
-                onKeyDown={submitOnEnter}
-                required
-                fullWidth
-              />
-              <TextField
-                label="Slug"
-                value={form.slug}
-                onChange={(event) => setForm({ ...form, slug: event.target.value })}
-                onKeyDown={submitOnEnter}
-                helperText="Used in the guest ordering URL, e.g. my-cafe"
-                required
-                fullWidth
-              />
-              <TextField
-                label="Address"
-                value={form.address}
-                onChange={(event) => setForm({ ...form, address: event.target.value })}
-                onKeyDown={submitOnEnter}
-                fullWidth
-              />
-              <TextField
-                select
-                label="Status"
-                value={form.status}
-                onChange={(event) =>
-                  setForm({ ...form, status: event.target.value as RestaurantStatus })
-                }
-                fullWidth
-              >
-                {STATUS_OPTIONS.map((status) => (
-                  <MenuItem key={status} value={status}>
-                    {status}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <TextField
-                select
-                label="Subscription plan"
-                value={form.plan}
-                onChange={(event) =>
-                  setForm({ ...form, plan: event.target.value as SubscriptionPlan })
-                }
-                fullWidth
-              >
-                {PLAN_OPTIONS.map((plan) => (
-                  <MenuItem key={plan} value={plan}>
-                    {plan}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <TextField
-                label="Price"
-                type="number"
-                slotProps={{ htmlInput: { step: "0.01", min: 0 } }}
-                value={form.price}
-                onChange={(event) => setForm({ ...form, price: event.target.value })}
-                onKeyDown={submitOnEnter}
-                fullWidth
-              />
-              <TextField
-                label="Trial end date"
-                type="date"
-                slotProps={{ inputLabel: { shrink: true } }}
-                value={form.trialEnd}
-                onChange={(event) => setForm({ ...form, trialEnd: event.target.value })}
-                onKeyDown={submitOnEnter}
-                fullWidth
-              />
-              {error && <Alert severity="error">{error}</Alert>}
-            </Stack>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleClose}>Cancel</Button>
-            <Button type="submit" variant="contained" disabled={loading}>
-              {loading ? "Creating..." : "Create"}
-            </Button>
-          </DialogActions>
-        </Box>
-      </Dialog>
+      <FormDialog
+        open={open}
+        onClose={handleClose}
+        onSubmit={handleSubmit}
+        title="Create Restaurant"
+        error={error}
+        pending={loading}
+        submitLabel="Create"
+        pendingLabel="Creating..."
+      >
+        <TextField
+          label="Name"
+          value={form.name}
+          onChange={(event) => setForm({ ...form, name: event.target.value })}
+          onKeyDown={submitOnEnter}
+          autoFocus
+          required
+          fullWidth
+        />
+        <TextField
+          label="Slug"
+          value={form.slug}
+          onChange={(event) => setForm({ ...form, slug: event.target.value })}
+          onKeyDown={submitOnEnter}
+          helperText="Used in the guest ordering URL, e.g. my-cafe"
+          required
+          fullWidth
+        />
+        <TextField
+          label="Address"
+          value={form.address}
+          onChange={(event) => setForm({ ...form, address: event.target.value })}
+          onKeyDown={submitOnEnter}
+          fullWidth
+        />
+        <TextField
+          select
+          label="Status"
+          value={form.status}
+          onChange={(event) => setForm({ ...form, status: event.target.value as RestaurantStatus })}
+          fullWidth
+        >
+          {STATUS_OPTIONS.map((status) => (
+            <MenuItem key={status} value={status}>
+              {status}
+            </MenuItem>
+          ))}
+        </TextField>
+        <TextField
+          select
+          label="Subscription plan"
+          value={form.plan}
+          onChange={(event) => setForm({ ...form, plan: event.target.value as SubscriptionPlan })}
+          fullWidth
+        >
+          {PLAN_OPTIONS.map((plan) => (
+            <MenuItem key={plan} value={plan}>
+              {plan}
+            </MenuItem>
+          ))}
+        </TextField>
+        <TextField
+          label="Price"
+          type="number"
+          slotProps={{ htmlInput: { step: "0.01", min: 0 } }}
+          value={form.price}
+          onChange={(event) => setForm({ ...form, price: event.target.value })}
+          onKeyDown={submitOnEnter}
+          fullWidth
+        />
+        <TextField
+          label="Trial end date"
+          type="date"
+          slotProps={{ inputLabel: { shrink: true } }}
+          value={form.trialEnd}
+          onChange={(event) => setForm({ ...form, trialEnd: event.target.value })}
+          onKeyDown={submitOnEnter}
+          fullWidth
+        />
+      </FormDialog>
     </>
   );
 }

@@ -9,7 +9,10 @@ import DialogTitle from "@mui/material/DialogTitle";
 import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import { getSessionBill, type BillLine } from "@/app/r/[restaurantSlug]/table/[tableToken]/actions";
+import { EmptyState } from "@/components/EmptyState";
+import { LoadingOverlay } from "@/components/LoadingOverlay";
 
 // Mounted only while the dialog is open (Dialog discards children when
 // closed), so useState(true) below is a correct "loading" value on every
@@ -32,11 +35,11 @@ function BillContent({ tableSessionId }: { tableSessionId: string }) {
   }, [tableSessionId]);
 
   if (loading) {
-    return <Typography color="text.secondary">Loading...</Typography>;
+    return <LoadingOverlay fullSection label="Loading bill..." />;
   }
 
   if (!bill || bill.lines.length === 0) {
-    return <Typography color="text.secondary">No orders yet.</Typography>;
+    return <EmptyState icon={<ReceiptLongOutlinedIcon />} title="No orders yet" />;
   }
 
   return (

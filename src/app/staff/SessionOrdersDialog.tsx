@@ -10,7 +10,11 @@ import DialogTitle from "@mui/material/DialogTitle";
 import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import ListAltOutlinedIcon from "@mui/icons-material/ListAltOutlined";
 import { viewSessionOrders } from "@/app/staff/actions";
+import { EmptyState } from "@/components/EmptyState";
+import { LoadingOverlay } from "@/components/LoadingOverlay";
+import { OrderStatusChip } from "@/components/OrderStatusChip";
 import type { StaffOrder } from "@/app/staff/data";
 
 // Mounted only while the dialog is open, so useState(true) below is a
@@ -33,18 +37,18 @@ function SessionOrdersContent({ sessionId }: { sessionId: string }) {
   }, [sessionId]);
 
   if (loading) {
-    return <Typography color="text.secondary">Loading...</Typography>;
+    return <LoadingOverlay fullSection label="Loading orders..." />;
   }
   if (orders.length === 0) {
-    return <Typography color="text.secondary">No orders yet.</Typography>;
+    return <EmptyState icon={<ListAltOutlinedIcon />} title="No orders yet" />;
   }
 
   return (
     <Stack spacing={2} divider={<Divider />}>
       {orders.map((order) => (
         <Box key={order.id}>
-          <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-            <Typography variant="subtitle2">{order.status}</Typography>
+          <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
+            <OrderStatusChip status={order.status} />
             <Typography variant="subtitle2">{order.total_price.toFixed(2)}</Typography>
           </Stack>
           {order.order_items.map((item) => (

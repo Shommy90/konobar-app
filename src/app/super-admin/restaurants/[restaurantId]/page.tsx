@@ -5,11 +5,14 @@ import Grid from "@mui/material/Grid";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import PersonOutlineIcon from "@mui/icons-material/PersonOutlined";
+import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import { getCurrentProfile } from "@/lib/auth/getCurrentProfile";
 import { getRestaurantDetail } from "@/app/super-admin/data";
-import { BackToDashboardButton } from "@/app/super-admin/BackToDashboardButton";
 import { EditOwnerDialog } from "@/app/super-admin/EditOwnerDialog";
 import { EditRestaurantDialog } from "@/app/super-admin/EditRestaurantDialog";
+import { EmptyState } from "@/components/EmptyState";
+import { PageHeader } from "@/components/PageHeader";
 import { RestaurantStatusChip } from "@/components/RestaurantStatusChip";
 import { StatusToggleButton } from "@/app/super-admin/StatusToggleButton";
 import { formatDate } from "@/lib/formatDate";
@@ -40,28 +43,30 @@ export default async function RestaurantDetailPage({ params }: RestaurantDetailP
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
-      <BackToDashboardButton />
-
-      <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 3 }}>
-        <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
-          <Typography variant="h4" component="h1">
-            {restaurant.name}
-          </Typography>
-          <RestaurantStatusChip status={restaurant.status} />
-        </Stack>
-        <EditRestaurantDialog
-          initial={{
-            restaurantId: restaurant.id,
-            name: restaurant.name,
-            slug: restaurant.slug,
-            address: restaurant.address ?? "",
-            status: restaurant.status,
-            plan: subscription?.plan ?? "BASIC",
-            price: subscription?.price != null ? String(subscription.price) : "",
-            trialEnd: toDateInputValue(subscription?.trial_end ?? null),
-          }}
-        />
-      </Stack>
+      <PageHeader
+        backHref="/super-admin"
+        breadcrumbs={[{ label: "Super Admin", href: "/super-admin" }, { label: restaurant.name }]}
+        title={restaurant.name}
+        description={
+          <Stack direction="row" spacing={1} sx={{ alignItems: "center", mt: 0.5 }}>
+            <RestaurantStatusChip status={restaurant.status} />
+          </Stack>
+        }
+        action={
+          <EditRestaurantDialog
+            initial={{
+              restaurantId: restaurant.id,
+              name: restaurant.name,
+              slug: restaurant.slug,
+              address: restaurant.address ?? "",
+              status: restaurant.status,
+              plan: subscription?.plan ?? "BASIC",
+              price: subscription?.price != null ? String(subscription.price) : "",
+              trialEnd: toDateInputValue(subscription?.trial_end ?? null),
+            }}
+          />
+        }
+      />
 
       <Grid container spacing={2}>
         <Grid size={{ xs: 12, sm: 6 }}>
@@ -105,7 +110,10 @@ export default async function RestaurantDetailPage({ params }: RestaurantDetailP
                 </Typography>
               </Stack>
             ) : (
-              <Typography color="text.secondary">No subscription on record.</Typography>
+              <EmptyState
+                icon={<ReceiptLongOutlinedIcon />}
+                title="No subscription on record"
+              />
             )}
           </Paper>
         </Grid>
@@ -137,9 +145,11 @@ export default async function RestaurantDetailPage({ params }: RestaurantDetailP
                 </Typography>
               </Stack>
             ) : (
-              <Typography color="text.secondary">
-                No owner assigned yet. Create one from the dashboard.
-              </Typography>
+              <EmptyState
+                icon={<PersonOutlineIcon />}
+                title="No owner assigned yet"
+                description="Create one from the dashboard."
+              />
             )}
           </Paper>
         </Grid>

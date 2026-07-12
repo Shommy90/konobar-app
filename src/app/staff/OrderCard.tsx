@@ -8,6 +8,12 @@ import CardContent from "@mui/material/CardContent";
 import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import CheckCircleOutlinedIcon from "@mui/icons-material/CheckCircleOutlined";
+import DoneAllOutlinedIcon from "@mui/icons-material/DoneAllOutlined";
+import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
+import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { OrderStatusChip } from "@/components/OrderStatusChip";
 import { formatElapsedMinutes } from "@/lib/elapsed";
 import type { StaffOrder } from "@/app/staff/data";
 
@@ -29,11 +35,19 @@ export function OrderCard({
   onMarkDelivered,
 }: OrderCardProps) {
   const [busy, setBusy] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
 
   async function handle(action: (id: string) => Promise<void>) {
     setBusy(true);
     await action(order.id);
     setBusy(false);
+  }
+
+  async function handleConfirmCancel() {
+    setBusy(true);
+    await onCancel(order.id);
+    setBusy(false);
+    setCancelOpen(false);
   }
 
   const tableLabel = order.restaurant_tables?.name ?? "Table";
@@ -44,7 +58,6 @@ export function OrderCard({
 
   return (
     <Card
-      variant="outlined"
       sx={{
         borderColor: order.status === "NEW" ? "warning.main" : undefined,
         borderWidth: order.status === "NEW" ? 2 : 1,
@@ -55,13 +68,16 @@ export function OrderCard({
           <Typography variant="h6" sx={{ fontWeight: 700 }}>
             {tableLabel.toUpperCase()}
           </Typography>
+          <OrderStatusChip status={order.status} size="medium" />
+        </Stack>
+        <Stack direction="row" sx={{ justifyContent: "space-between" }}>
+          <Typography variant="caption" color="text.secondary">
+            Order #{order.id.slice(0, 8).toUpperCase()}
+          </Typography>
           <Typography variant="body2" color="text.secondary">
             {timeLabel} · {formatElapsedMinutes(order.created_at, now)}
           </Typography>
         </Stack>
-        <Typography variant="caption" color="text.secondary">
-          Order #{order.id.slice(0, 8).toUpperCase()}
-        </Typography>
 
         <Divider sx={{ my: 1 }} />
 
@@ -92,6 +108,7 @@ export function OrderCard({
                 size="large"
                 variant="contained"
                 color="success"
+                startIcon={<CheckCircleOutlinedIcon />}
                 disabled={busy}
                 onClick={() => handle(onAccept)}
               >
@@ -102,8 +119,9 @@ export function OrderCard({
                 size="large"
                 variant="outlined"
                 color="error"
+                startIcon={<CloseOutlinedIcon />}
                 disabled={busy}
-                onClick={() => handle(onCancel)}
+                onClick={() => setCancelOpen(true)}
               >
                 Cancel
               </Button>
@@ -114,6 +132,7 @@ export function OrderCard({
               fullWidth
               size="large"
               variant="contained"
+              startIcon={<LocalShippingOutlinedIcon />}
               disabled={busy}
               onClick={() => handle(onMarkReady)}
             >
@@ -126,6 +145,7 @@ export function OrderCard({
               size="large"
               variant="contained"
               color="success"
+              startIcon={<DoneAllOutlinedIcon />}
               disabled={busy}
               onClick={() => handle(onMarkDelivered)}
             >
@@ -134,6 +154,16 @@ export function OrderCard({
           )}
         </Stack>
       </CardContent>
+
+      <ConfirmDialog
+        open={cancelOpen}
+        onClose={() => setCancelOpen(false)}
+        onConfirm={handleConfirmCancel}
+        title="Cancel this order?"
+        description={`Cancel the order for ${tableLabel}? The guest will need to place it again if this was a mistake.`}
+        confirmLabel="Cancel Order"
+        pending={busy}
+      />
     </Card>
   );
 }

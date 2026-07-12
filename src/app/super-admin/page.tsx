@@ -2,12 +2,13 @@ import { redirect } from "next/navigation";
 import Container from "@mui/material/Container";
 import Grid from "@mui/material/Grid";
 import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
 import { getCurrentProfile } from "@/lib/auth/getCurrentProfile";
 import { CreateRestaurantDialog } from "@/app/super-admin/CreateRestaurantDialog";
 import { CreateOwnerDialog } from "@/app/super-admin/CreateOwnerDialog";
 import { RestaurantsTable } from "@/app/super-admin/RestaurantsTable";
-import { StatCard } from "@/app/super-admin/StatCard";
+import { PageHeader } from "@/components/PageHeader";
+import { SectionHeader } from "@/components/SectionHeader";
+import { StatCard } from "@/components/StatCard";
 import { getDashboardData } from "@/app/super-admin/data";
 
 export default async function SuperAdminPage() {
@@ -21,9 +22,10 @@ export default async function SuperAdminPage() {
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
-        Super Admin Dashboard
-      </Typography>
+      <PageHeader
+        title="Super Admin Dashboard"
+        description="Manage every restaurant on the platform."
+      />
 
       <Grid container spacing={2} sx={{ mb: 4 }}>
         <Grid size={{ xs: 6, sm: 4, md: 2.4 }}>
@@ -43,15 +45,15 @@ export default async function SuperAdminPage() {
         </Grid>
       </Grid>
 
-      <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-        <Typography variant="h6" component="h2">
-          Restaurants
-        </Typography>
-        <Stack direction="row" spacing={1}>
-          <CreateOwnerDialog restaurants={restaurants.map((r) => ({ id: r.id, name: r.name }))} />
-          <CreateRestaurantDialog />
-        </Stack>
-      </Stack>
+      <SectionHeader
+        title="Restaurants"
+        action={
+          <Stack direction="row" spacing={1}>
+            <CreateOwnerDialog restaurants={restaurants.map((r) => ({ id: r.id, name: r.name }))} />
+            <CreateRestaurantDialog />
+          </Stack>
+        }
+      />
 
       <RestaurantsTable restaurants={restaurants} />
     </Container>

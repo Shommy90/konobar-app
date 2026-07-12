@@ -4,7 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { setCategoryActive } from "@/app/owner/menu/actions";
+import { useServerAction } from "@/lib/useServerAction";
+import { useToast } from "@/lib/toast/ToastProvider";
 
 export function CategoryActiveToggleButton({
   categoryId,
@@ -14,19 +17,17 @@ export function CategoryActiveToggleButton({
   isActive: boolean;
 }) {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const { run, loading, error } = useServerAction(setCategoryActive);
 
-  async function handleClick() {
-    setLoading(true);
-    setError(null);
-    const result = await setCategoryActive(categoryId, !isActive);
-    setLoading(false);
-    if (!result.success) {
-      setError(result.error);
-      return;
+  async function handleConfirmed() {
+    const ok = await run(categoryId, !isActive);
+    if (ok) {
+      setConfirmOpen(false);
+      router.refresh();
+      toast.success(isActive ? "Category deactivated." : "Category activated.");
     }
-    router.refresh();
   }
 
   return (
@@ -36,7 +37,7 @@ export function CategoryActiveToggleButton({
         variant="outlined"
         color={isActive ? "error" : "success"}
         disabled={loading}
-        onClick={handleClick}
+        onClick={() => (isActive ? setConfirmOpen(true) : handleConfirmed())}
       >
         {isActive ? "Deactivate" : "Activate"}
       </Button>
@@ -45,6 +46,15 @@ export function CategoryActiveToggleButton({
           {error}
         </Typography>
       )}
+      <ConfirmDialog
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={handleConfirmed}
+        title="Deactivate category?"
+        description="Guests will immediately stop seeing this category and all of its products on the menu."
+        confirmLabel="Deactivate"
+        pending={loading}
+      />
     </>
   );
 }

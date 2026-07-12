@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import { setProductAvailable } from "@/app/owner/menu/actions";
+import { useServerAction } from "@/lib/useServerAction";
+import { useToast } from "@/lib/toast/ToastProvider";
 
 export function ProductAvailableToggleButton({
   productId,
@@ -14,19 +15,15 @@ export function ProductAvailableToggleButton({
   isAvailable: boolean;
 }) {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
+  const { run, loading, error } = useServerAction(setProductAvailable);
 
   async function handleClick() {
-    setLoading(true);
-    setError(null);
-    const result = await setProductAvailable(productId, !isAvailable);
-    setLoading(false);
-    if (!result.success) {
-      setError(result.error);
-      return;
+    const ok = await run(productId, !isAvailable);
+    if (ok) {
+      router.refresh();
+      toast.success(isAvailable ? "Product marked unavailable." : "Product marked available.");
     }
-    router.refresh();
   }
 
   return (
